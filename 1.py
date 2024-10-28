@@ -2,7 +2,7 @@ import open3d as o3d
 import numpy as np
 
 # 加載 DemoColoredICPPointClouds 示例數據
-<<<<<<< HEAD
+
 # demo_icp_data = o3d.data.DemoColoredICPPointClouds()
 # source = o3d.io.read_point_cloud(demo_icp_data.paths[0])  # 第一個點雲作為源點雲
 # o3d.visualization.draw_geometries([source])
@@ -13,12 +13,12 @@ ply_data = o3d.data.DemoColoredICPPointClouds()
 source = o3d.io.read_point_cloud(ply_data.paths[0])
 o3d.visualization.draw_geometries([source])
 target = o3d.io.read_point_cloud(ply_data.paths[1])
-=======
+
 demo_icp_data = o3d.data.DemoColoredICPPointClouds()
 source = o3d.io.read_point_cloud(demo_icp_data.paths[0])  # 第一個點雲作為源點雲
 o3d.visualization.draw_geometries([source])
 target = o3d.io.read_point_cloud(demo_icp_data.paths[1])  # 第二個點雲作為目標點雲
->>>>>>> 7ab78b42a8d521d5457db0b7d2ee74ff2aeda9e7
+
 o3d.visualization.draw_geometries([target])
 
 # 可視化初始的源點雲和目標點雲

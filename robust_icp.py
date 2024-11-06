@@ -23,7 +23,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 # ----------------------------------------------------------------------------
-"""Outlier rejection using robust kernels for ICP"""
+# """Outlier rejection using robust kernels for ICP"""
 
 import open3d as o3d
 import numpy as np
@@ -33,8 +33,8 @@ import copy
 def draw_registration_result(source, target, transformation):
     source_temp = copy.deepcopy(source)
     target_temp = copy.deepcopy(target)
-    source_temp.paint_uniform_color([1, 0.706, 0])
-    target_temp.paint_uniform_color([0, 0.651, 0.929])
+    source_temp.paint_uniform_color([1, 0.706, 0])          #黃色
+    target_temp.paint_uniform_color([0, 0.651, 0.929])      #藍色
     source_temp.transform(transformation)
     o3d.visualization.draw([source_temp, target_temp])
 
@@ -53,7 +53,8 @@ if __name__ == "__main__":
     target = o3d.io.read_point_cloud(pcd_data.paths[1])
     trans_init = np.asarray([[0.862, 0.011, -0.507, 0.5],
                              [-0.139, 0.967, -0.215, 0.7],
-                             [0.487, 0.255, 0.835, -1.4], [0.0, 0.0, 0.0, 1.0]])
+                             [0.487, 0.255, 0.835, -1.4], 
+                             [0.0, 0.0, 0.0, 1.0]])
 
     # Mean and standard deviation.
     mu, sigma = 0, 0.1

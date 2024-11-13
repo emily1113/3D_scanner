@@ -1,59 +1,50 @@
 import open3d as o3d
 import numpy as np
-import copy
 
+# 讀取點雲檔案
+pcd0 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/ICP/ICP/red/00.ply")
+pcd1 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/ICP/ICP/red/01.ply")
 
-def draw_registration_result(source, target, transformation):
-    source_temp = copy.deepcopy(source)
-    target_temp = copy.deepcopy(target)
-    source_temp.paint_uniform_color([1, 0.706, 0])
-    target_temp.paint_uniform_color([0, 0.651, 0.929])
-    source_temp.transform(transformation)
-    o3d.visualization.draw([source_temp, target_temp])
+# 為點雲分別設定顏色
+pcd0.paint_uniform_color([1, 0, 0])  # 紅色
+pcd1.paint_uniform_color([0, 1, 0])  # 綠色
 
+# 建立 x 軸旋轉矩陣 (旋轉 135 度)
+angle_x = np.deg2rad(135)  # x 軸角度轉換為弧度
+rotation_matrix_x = np.array([
+    [1, 0, 0],
+    [0, np.cos(angle_x), -np.sin(angle_x)],
+    [0, np.sin(angle_x), np.cos(angle_x)]
+])
 
-def point_cloud_registration(source, target, threshold=1.0, init_transformation=np.eye(4)):
-    # 使用點對平面的ICP算法進行點雲配準
-    loss = o3d.pipelines.registration.TukeyLoss(k=0.1)
-    p2l = o3d.pipelines.registration.TransformationEstimationPointToPlane(loss)
-    reg_p2l = o3d.pipelines.registration.registration_icp(
-        source, target, threshold, init_transformation, p2l)
-    return reg_p2l.transformation
+# 套用 x 軸旋轉矩陣
+pcd1.rotate(rotation_matrix_x, center=(0, 0, 0))
+pcd0.rotate(rotation_matrix_x, center=(0, 0, 0))
 
+# 建立 y 軸旋轉矩陣 (逆時針旋轉 90 度)
+angle_y = np.deg2rad(90)  # y 軸角度轉換為弧度
+rotation_matrix_y = np.array([
+    [np.cos(angle_y), 0, np.sin(angle_y)],
+    [0, 1, 0],
+    [-np.sin(angle_y), 0, np.cos(angle_y)]
+])
 
-def merge_point_clouds(point_clouds, transformations):
-    merged_pcd = o3d.geometry.PointCloud()
-    for i, pcd in enumerate(point_clouds):
-        temp_pcd = copy.deepcopy(pcd)
-        temp_pcd.transform(transformations[i])
-        merged_pcd += temp_pcd
-    merged_pcd = merged_pcd.voxel_down_sample(voxel_size=0.01)
-    return merged_pcd
+# 套用 y 軸旋轉矩陣
+pcd1.rotate(rotation_matrix_y, center=(0, 0, 0))
 
+# # 定義平移向量，例如沿 z 軸平移 2 個單位
+# translation_vector = np.array([350, 0, -500])
 
-if __name__ == "__main__":
-    # 讀取不同角度的點雲
-    pcd_data = o3d.data.DemoICPPointClouds()
-    source = o3d.io.read_point_cloud(pcd_data.paths[0])
-    target = o3d.io.read_point_cloud(pcd_data.paths[1])
-    
-    # 初始轉換矩陣（可以根據情況調整）
-    init_transformation = np.asarray([[0.862, 0.011, -0.507, 0.5],
-                                      [-0.139, 0.967, -0.215, 0.7],
-                                      [0.487, 0.255, 0.835, -1.4],
-                                      [0.0, 0.0, 0.0, 1.0]])
+# # 套用平移到 pcd1
+# pcd1.translate(translation_vector)
 
-    # 進行點雲配準
-    print("Performing ICP registration...")
-    transformation = point_cloud_registration(source, target, threshold=1.0, init_transformation=init_transformation)
-    print("Transformation matrix:\n", transformation)
+# 合併兩個點雲
+combined_pcd = pcd0 + pcd1
 
-    # 顯示配準結果
-    draw_registration_result(source, target, transformation)
+# # 顯示合併後的點雲圖，顯示不同顏色
+# o3d.visualization.draw_geometries([combined_pcd])
 
-    # 合併點雲
-    merged_pcd = merge_point_clouds([source, target], [np.eye(4), transformation])
+# 將合併後的點雲儲存為新檔案
+o3d.io.write_point_cloud("combined_point_cloud.ply", combined_pcd)
 
-    # 保存最終的合併點雲
-    o3d.io.write_point_cloud("merged_point_cloud.ply", merged_pcd)
-    print("最終點雲已保存到 'merged_point_cloud.ply'")
+print("合併的點雲已保存為 combined_point_cloud.ply")

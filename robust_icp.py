@@ -33,8 +33,8 @@ import copy
 def draw_registration_result(source, target, transformation):
     source_temp = copy.deepcopy(source)
     target_temp = copy.deepcopy(target)
-    source_temp.paint_uniform_color([1, 0.706, 0])          #黃色
-    target_temp.paint_uniform_color([0, 0.651, 0.929])      #藍色
+    source_temp.paint_uniform_color([1, 0.706, 0])  # 黃色
+    target_temp.paint_uniform_color([0, 0.651, 0.929])  # 藍色
     source_temp.transform(transformation)
     o3d.visualization.draw([source_temp, target_temp])
 
@@ -48,24 +48,26 @@ def apply_noise(pcd, mu, sigma):
 
 
 if __name__ == "__main__":
-    pcd_data = o3d.data.DemoICPPointClouds()
-    source = o3d.io.read_point_cloud(pcd_data.paths[0])
-    target = o3d.io.read_point_cloud(pcd_data.paths[1])
-    trans_init = np.asarray([[0.862, 0.011, -0.507, 0.5],
-                             [-0.139, 0.967, -0.215, 0.7],
-                             [0.487, 0.255, 0.835, -1.4], 
-                             [0.0, 0.0, 0.0, 1.0]])
+    source = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/ICP/ICP/red/1_40/point_cloud_00000.ply")
+    target = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/ICP/ICP/red/1_40/point_cloud_00001.ply")
+    
+    # 計算法向量
+    source.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+    target.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
 
-    # Mean and standard deviation.
+    trans_init = np.array([[0, -1, 0, 0],
+                           [1,  0, 0, 0],
+                           [0,  0, 1, 0],
+                           [0,  0, 0, 1]])
+
+    # 加入噪聲
     mu, sigma = 0, 0.1
     source_noisy = apply_noise(source, mu, sigma)
 
     print("Displaying source point cloud + noise:")
     o3d.visualization.draw([source_noisy])
 
-    print(
-        "Displaying original source and target point cloud with initial transformation:"
-    )
+    print("Displaying original source and target point cloud with initial transformation:")
     draw_registration_result(source, target, trans_init)
 
     threshold = 1.0
@@ -74,14 +76,22 @@ if __name__ == "__main__":
     loss = o3d.pipelines.registration.TukeyLoss(k=sigma)
     print("Using robust loss:", loss)
     p2l = o3d.pipelines.registration.TransformationEstimationPointToPlane(loss)
+
     reg_p2l = o3d.pipelines.registration.registration_icp(
         source_noisy, target, threshold, trans_init, p2l)
     print(reg_p2l)
     print("Transformation is:")
     print(reg_p2l.transformation)
     draw_registration_result(source, target, reg_p2l.transformation)
-    # 將轉換應用到原始的來源點雲，並保存
-final_source = copy.deepcopy(source)
-final_source.transform(reg_p2l.transformation)
-o3d.io.write_point_cloud("final_source.ply", final_source)
-print("最終點雲已保存到 'final_source.ply'")
+
+# 合併點雲
+combined_pcd = source + target
+
+# 將轉換應用到原始的來源點雲後加入合併的點雲
+transformed_source = copy.deepcopy(source)
+transformed_source.transform(reg_p2l.transformation)
+combined_pcd = transformed_source + target
+
+# 保存合併的點雲
+o3d.io.write_point_cloud("combined_point_cloud.ply", combined_pcd)
+print("合併的點雲已保存到 'combined_point_cloud.ply'")

@@ -1,46 +1,38 @@
+# import open3d as o3d
+# import numpy as np
+
+# # 讀取點雲檔案
+# pcd0 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/ICP/ICP/red/1_40/point_cloud_00000.ply")
+# pcd1 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/ICP/ICP/red/1_40/point_cloud_00001.ply")
+# # 建立旋轉矩陣 (x 軸旋轉 135 度)
+# angle = np.deg2rad(135)  # 將角度轉換為弧度
+# rotation_matrix = np.array([
+#     [1, 0, 0],
+#     [0, np.cos(angle), -np.sin(angle)],
+#     [0, np.sin(angle), np.cos(angle)]
+# ])
+
+# # 套用旋轉矩陣
+# pcd0.rotate(rotation_matrix, center=(0, 0, 0))
+# pcd1.rotate(rotation_matrix, center=(0, 0, 0))
+
+# # 可選：將旋轉後的點雲圖儲存為新檔案
+# o3d.io.write_point_cloud("point_cloud_00000.ply", pcd0)
+# o3d.io.write_point_cloud("point_cloud_00001.ply", pcd1)
+# combined_pcd = pcd0 + pcd1
+# o3d.io.write_point_cloud("0001.ply", combined_pcd)
+
+
 import open3d as o3d
 import numpy as np
 
-# 讀取多角度的點雲數據（假設已經拍攝好）
-pcd_data = o3d.data.DemoICPPointClouds()
-pcd_0  = o3d.io.read_point_cloud(pcd_data.paths[0])
-pcd_90 = o3d.io.read_point_cloud(pcd_data.paths[1])
-# pcd_0 = o3d.io.read_point_cloud("path/to/pcd_0.ply")
-# pcd_90 = o3d.io.read_point_cloud("path/to/pcd_90.ply")
-pcd_180 = o3d.io.read_point_cloud("path/to/pcd_180.ply")
-pcd_270 = o3d.io.read_point_cloud("path/to/pcd_270.ply")
+# 讀取 .ply 檔案
+ply_file_path = "C:/Users/ASUS/Desktop/ICP/ICP/red/1_40/point_cloud_00000.ply"  # 替換為你的檔案路徑
+point_cloud = o3d.io.read_point_cloud(ply_file_path)
 
-# 設定旋轉矩陣
-trans_90 = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-trans_180 = np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-trans_270 = np.array([[0, 1, 0, 0], [-1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-
-# 初始對齊
-pcd_90.transform(trans_90)
-pcd_180.transform(trans_180)
-pcd_270.transform(trans_270)
-
-# 精確配準
-threshold = 1.0
-icp = o3d.pipelines.registration.registration_icp
-
-# 配準 pcd_90 到 pcd_0
-result_90 = icp(pcd_90, pcd_0, threshold, np.identity(4))
-pcd_90.transform(result_90.transformation)
-
-# 配準 pcd_180 到 pcd_0
-result_180 = icp(pcd_180, pcd_0, threshold, np.identity(4))
-pcd_180.transform(result_180.transformation)
-
-# 配準 pcd_270 到 pcd_0
-result_270 = icp(pcd_270, pcd_0, threshold, np.identity(4))
-pcd_270.transform(result_270.transformation)
-
-# 合併點雲
-pcd_combined = pcd_0 + pcd_90 + pcd_180 + pcd_270
-
-# 儲存完整的點雲圖
-o3d.io.write_point_cloud("path/to/complete_model.ply", pcd_combined)
-
-# 可視化
-o3d.visualization.draw([pcd_combined])
+# 確認座標
+if point_cloud.is_empty():
+    print("無法讀取座標，請檢查檔案內容或格式。")
+else:
+    points = np.asarray(point_cloud.points)
+    print("座標資料：", points)

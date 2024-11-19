@@ -3,7 +3,7 @@ from plyfile import PlyData, PlyElement
 import numpy as np
 
 # 指定 PLY 檔案路徑
-ply_path = "C:/Users/ASUS/Desktop/ICP/ICP/red/1_40/point_cloud_00003.ply"
+ply_path = "C:/Users/ASUS/Desktop/POINT/red/1118/point_cloud_00000.ply"
 plydata = PlyData.read(ply_path)
 
 # 取得頂點資料並轉換為適合 DataFrame 的格式
@@ -34,7 +34,7 @@ new_vertices = np.array([(row['x'], row['y'], row['z']) for _, row in df.iterrow
                         dtype=[('x', 'f4'), ('y', 'f4'), ('z', 'f4')])
 
 new_ply_data = PlyData([PlyElement.describe(new_vertices, 'vertex')], text=True)
-new_ply_path = "C:/Users/ASUS/Desktop/ICP/ICP/red/03.ply"
+new_ply_path = "C:/Users/ASUS/Desktop/POINT/red/01.ply"
 new_ply_data.write(new_ply_path)
 
 print("轉換完成，新點雲文件已儲存至：", new_ply_path)

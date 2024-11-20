@@ -20,9 +20,6 @@
 
 
 
-
-
-
 import cv2
 import cv2.aruco as aruco
 import numpy as np
@@ -80,3 +77,4 @@ def generate_aruco_marker_with_trim_line(marker_id, marker_size=151, dictionary=
 generate_aruco_marker_with_trim_line(marker_id=1)
 
 
+ 

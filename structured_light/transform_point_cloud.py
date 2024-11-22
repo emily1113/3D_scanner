@@ -1,3 +1,8 @@
+
+
+#設定自定義座標系統參數
+
+
 from mecheye.shared import *
 from mecheye.area_scan_3d_camera import *
 from mecheye.area_scan_3d_camera_utils import find_and_connect, confirm_capture_3d

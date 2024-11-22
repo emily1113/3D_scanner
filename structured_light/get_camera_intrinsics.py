@@ -1,4 +1,8 @@
-# 從 MechEye 套件匯入相關模組
+
+
+#打印相機內部參數
+
+
 from mecheye.shared import *
 from mecheye.area_scan_3d_camera import *
 from mecheye.area_scan_3d_camera_utils import find_and_connect, print_camera_intrinsics

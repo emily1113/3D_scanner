@@ -65,6 +65,8 @@ class TransformPointCloud(object):
         # 儲存點雲檔案
         show_error(Frame2DAnd3D.save_point_cloud_with_normals(transformed_textured_point_cloud_with_normals, FileFormat_PLY, textured_point_cloud_with_normals_file, False))
         print("捕獲並儲存帶法向量和紋理的點雲：{}".format(textured_point_cloud_with_normals_file))
+    
+    
 
     # 主函式：處理點雲的整個流程
     def main(self):
@@ -77,6 +79,11 @@ class TransformPointCloud(object):
             show_error(self.camera.capture_2d_and_3d(self.frame_all_2d_3d))
             # 獲取相機到自定義座標系的剛體轉換參數
             transformation = get_transformation_params(self.camera)
+            print("Transformation 內容如下：")
+            print("旋轉矩陣 (Rotation Matrix):")
+            print(transformation.rotation)
+            print("平移向量 (Translation Vector):")
+            print(transformation.translation)
             if transformation.__is__valid__() == False:
                 print("轉換參數尚未設定，請使用客戶端工具設定自定義座標系統參數。")
                 return

@@ -1,3 +1,28 @@
+# import cv2
+# import cv2.aruco as aruco
+# import numpy as np
+
+# def generate_aruco_marker(marker_id, marker_size=151, dictionary=aruco.DICT_4X4_50):      # 5cm的aruco Pixel為188.98, 4cm Pixel為151.18
+#     # 获取指定的字典
+#     aruco_dict = aruco.getPredefinedDictionary(dictionary)
+    
+#     # 生成标记图像
+#     img = aruco.generateImageMarker(aruco_dict, marker_id, marker_size)
+    
+#     # 保存标记图像
+#     cv2.imwrite(f'aruco_marker_{marker_id}.png', img)
+#     print(f"已保存 ArUco 标记 ID {marker_id} 为 aruco_marker_{marker_id}.png")
+
+# # 生成 ID 为 0 到 4 的 ArUco 标记
+# for marker_id in range(1):
+#     generate_aruco_marker(marker_id)
+
+
+
+
+
+
+
 import cv2
 import cv2.aruco as aruco
 import numpy as np

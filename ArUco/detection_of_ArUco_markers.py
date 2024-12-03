@@ -69,7 +69,7 @@ def detect_aruco_from_image(image_path, dictionary=aruco.DICT_6X6_50, max_width=
     cv2.destroyAllWindows()
 
 # 替换图片路径
-image_path = "C:/Users/ASUS/Desktop/POINT/3D_scanner/ArUco/rgb_image_00000.png"
+image_path = "C:/Users/ASUS/Desktop/POINT/red/ArUco/rgb_image_00000.png"
 detect_aruco_from_image(image_path, max_width=800, max_height=600)
 
 

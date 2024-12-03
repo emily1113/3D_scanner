@@ -38,7 +38,7 @@ def get_transformation_matrix(rvec, tvec):
     transformation_matrix[:3, 3] = tvec.ravel()
     return transformation_matrix
 
-def detect_aruco_from_image(image_path, dictionary=aruco.DICT_6X6_50, max_width=800, max_height=600):
+def detect_aruco_from_image(image_path, dictionary=aruco.DICT_6X6_50, max_width=800, max_height=800):
     """
     从图片中检测 ArUco 标记，并在标记上绘制三维坐标系，同时计算相机到 ArUco 的变换矩阵。
 
@@ -87,5 +87,5 @@ def detect_aruco_from_image(image_path, dictionary=aruco.DICT_6X6_50, max_width=
     cv2.destroyAllWindows()
 
 # 替换图片路径
-image_path = "C:/Users/user/Desktop/PointCloud/ICP/ArUco/rgb_image_00000.png"
+image_path = "C:/Users/ASUS/Desktop/POINT/red/ArUco/rgb_image_00000.png"
 detect_aruco_from_image(image_path, max_width=800, max_height=600)

@@ -61,8 +61,8 @@ def execute_icp(source, target, trans_init, threshold):
 
 if __name__ == "__main__":
     # 讀取自定義點雲數據
-    source_path = "C:/Users/ASUS/Desktop/POINT/red/icp_5/point_cloud_00000.ply"
-    target_path = "C:/Users/ASUS/Desktop/POINT/red/icp_5/point_cloud_00001.ply"
+    source_path = "C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00000.ply"
+    target_path = "C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00001.ply"
     source = o3d.io.read_point_cloud(source_path)
     target = o3d.io.read_point_cloud(target_path)
 

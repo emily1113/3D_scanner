@@ -2,8 +2,8 @@ import open3d as o3d
 import numpy as np
 
 # 读取参考点云和目标点云
-source = o3d.io.read_point_cloud("source.pcd")  # 目标点云
-target = o3d.io.read_point_cloud("target.pcd")  # 参考点云
+source = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00000.ply")  # 目标点云
+target = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00001.ply")  # 参考点云
 
 # 对点云进行下采样以减少计算量
 source_down = source.voxel_down_sample(voxel_size=0.05)

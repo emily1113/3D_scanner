@@ -36,26 +36,26 @@ def translate_point_cloud(pcd, x=0, y=0, z=0):
     pcd.translate(translation_vector)
 
 # 讀取點雲檔案
-pcd0 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/1118_pcd/point_cloud_00000.pcd")
-pcd1 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/1118_pcd/point_cloud_00001.pcd")
-pcd2 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/1118_pcd/point_cloud_00002.pcd")
-pcd3 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/1118_pcd/point_cloud_00003.pcd")
+pcd0 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/point_cloud_00000 - Cloud.ply")
+pcd1 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/point_cloud_00001 - Cloud.ply")
+# pcd2 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/1118_pcd/point_cloud_00002.pcd")
+# pcd3 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/1118_pcd/point_cloud_00003.pcd")
 
 # 為每個點雲分別設定不同顏色
 pcd0.paint_uniform_color([1, 0, 0])  # 紅色
 pcd1.paint_uniform_color([0, 1, 0])  # 綠色
-pcd2.paint_uniform_color([0, 0, 1])  # 藍色
-pcd3.paint_uniform_color([1, 1, 0])  # 黃色
+# pcd2.paint_uniform_color([0, 0, 1])  # 藍色
+# pcd3.paint_uniform_color([1, 1, 0])  # 黃色
 
 # 套用旋轉
 rotate_point_cloud(pcd1, angle_z=90)
-rotate_point_cloud(pcd2, angle_z=180)
-rotate_point_cloud(pcd3, angle_z=270)
+# rotate_point_cloud(pcd2, angle_z=180)
+# rotate_point_cloud(pcd3, angle_z=270)
 
 # 套用平移
 translate_point_cloud(pcd1, x=-23, y=-95)
-translate_point_cloud(pcd2, x=72, y=-118)
-translate_point_cloud(pcd3, x=95, y=-23)
+# translate_point_cloud(pcd2, x=72, y=-118)
+# translate_point_cloud(pcd3, x=95, y=-23)
 
 # 使用 ICP 將每個點雲依次與上一個對齊
 def apply_icp(source, target):
@@ -76,13 +76,13 @@ combined_pcd = pcd0
 pcd1 = apply_icp(pcd1, combined_pcd)
 combined_pcd += pcd1
 
-# 將 pcd2 與 combined_pcd 進行配準
-pcd2 = apply_icp(pcd2, combined_pcd)
-combined_pcd += pcd2
+# # 將 pcd2 與 combined_pcd 進行配準
+# pcd2 = apply_icp(pcd2, combined_pcd)
+# combined_pcd += pcd2
 
-# 將 pcd3 與 combined_pcd 進行配準
-pcd3 = apply_icp(pcd3, combined_pcd)
-combined_pcd += pcd3
+# # 將 pcd3 與 combined_pcd 進行配準
+# pcd3 = apply_icp(pcd3, combined_pcd)
+# combined_pcd += pcd3
 
 # 儲存合併後的點雲
 o3d.io.write_point_cloud("C:/Users/ASUS/Desktop/POINT/red/1118/combined_point_cloud_icp.ply", combined_pcd)

@@ -48,4 +48,4 @@ def generate_colored_aruco_marker(marker_id, marker_size=151, dictionary=aruco.D
     print(f"已保存自定義顏色的 ArUco 標記 ID {marker_id} 為 {output_file}")
 
 # 生成 ID 為 0 的 ArUco 標記，將黑色替換為紅色，並添加修剪線
-generate_colored_aruco_marker(marker_id=0, marker_color=(0, 0, 255), trim_line_offset_cm=1)
+generate_colored_aruco_marker(marker_id=2, marker_color=(0, 0, 255), trim_line_offset_cm=1)

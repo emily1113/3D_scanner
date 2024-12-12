@@ -39,7 +39,7 @@ def translate_point_cloud(pcd, x=0, y=0, z=0):
 pcd0 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00000.ply")
 pcd1 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply")
 pcd2 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00002.ply")
-pcd3 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00003.ply")
+pcd3 = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00018.ply")
 
 # 為每個點雲分別設定不同顏色
 pcd0.paint_uniform_color([1, 0, 0])  # 紅色
@@ -48,18 +48,18 @@ pcd2.paint_uniform_color([0, 0, 1])  # 藍色
 pcd3.paint_uniform_color([1, 1, 0])  # 黃色
 
 # # 套用旋轉
-# # rotate_point_cloud(pcd0)
+rotate_point_cloud(pcd0)
 # rotate_point_cloud(pcd1, angle_y=5)
 # rotate_point_cloud(pcd2, angle_y=10)
-# rotate_point_cloud(pcd3, angle_y=15)
+rotate_point_cloud(pcd3, angle_y=-90)
 
 # 套用平移
 # translate_point_cloud(pcd1, x=-60 )
 # translate_point_cloud(pcd2, x=-120,z=5)
-# translate_point_cloud(pcd3, x=-180,z=10)
+translate_point_cloud(pcd3, x=622,z=688)
 
 # 合併點雲
-combined_pcd = pcd0 + pcd2
+combined_pcd = pcd0 + pcd3
 
 
 # 儲存合併後的點雲

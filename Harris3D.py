@@ -56,7 +56,7 @@ def compute_harris_response_with_balltree(pcd, knn=30, k=0.04, min_response=1e-6
 
 # 設定參數
 knn = 50
-k = 0.05
+k = 0.01
 min_response = 1e-6  # 降低最小響應閾值
 num_keypoints = 500
 ply_file_path = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply"

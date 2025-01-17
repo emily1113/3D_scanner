@@ -1,76 +1,101 @@
-import open3d as o3d
 import numpy as np
+import open3d as o3d
+import copy  # 用於深度拷貝
 
-# 設置源和目標點雲的檔案路徑
-source_path = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply"
-target_path = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00003.ply"
+# 1. 加載內建的 Stanford Bunny 點雲
+def load_bunny_data():
+    bunny_source = o3d.data.BunnyMesh().path  # 內建 Stanford Bunny 模型
+    mesh = o3d.io.read_triangle_mesh(bunny_source)
+    mesh.compute_vertex_normals()
+    point_cloud = mesh.sample_points_poisson_disk(1000)  # 從網格生成點雲
+    return point_cloud
 
-# 載入點雲
-source = o3d.io.read_point_cloud(source_path)
-target = o3d.io.read_point_cloud(target_path)
-
-# 計算法向量
-def estimate_normals(point_cloud, radius=0.1, max_nn=30):
-    point_cloud.estimate_normals(
-        search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=radius, max_nn=max_nn)
+# 2. 加載點雲並降採樣
+def preprocess_point_cloud(point_cloud, voxel_size):
+    point_cloud_down = point_cloud.voxel_down_sample(voxel_size=voxel_size)
+    point_cloud_down.estimate_normals(
+        search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30)
     )
+    return point_cloud_down
 
-estimate_normals(source)
-estimate_normals(target)
-
-# 計算 FPFH 特徵
-def compute_fpfh(point_cloud, radius=0.25, max_nn=100):
-    return o3d.pipelines.registration.compute_fpfh_feature(
+# 3. 計算 FPFH 特徵
+def compute_fpfh(point_cloud, voxel_size):
+    fpfh = o3d.pipelines.registration.compute_fpfh_feature(
         point_cloud,
-        search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=radius, max_nn=max_nn)
+        o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 5, max_nn=100)
     )
+    return fpfh
 
-source_fpfh = compute_fpfh(source)
-target_fpfh = compute_fpfh(target)
+# 4. 使用 SAC-IA 進行初始對齊
+def sac_ia_registration(source, target, source_fpfh, target_fpfh, voxel_size):
+    distance_threshold = voxel_size * 1.5
+    result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+        source, target, source_fpfh, target_fpfh,
+        mutual_filter=True,
+        max_correspondence_distance=distance_threshold,
+        estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
+        ransac_n=4,
+        checkers=[
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)
+        ],
+        criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500)
+    )
+    return result
 
-# 計算特徵熵
-def compute_entropy(fpfh):
-    fpfh_data = np.asarray(fpfh.data)
-    fpfh_prob = fpfh_data / np.sum(fpfh_data, axis=0, keepdims=True)
-    return -np.sum(fpfh_prob * np.log(fpfh_prob + 1e-8), axis=0)
+# 5. 模擬更大的平移和旋轉
+def apply_random_transform(point_cloud):
+    """
+    對點雲應用隨機變換，包括旋轉和平移。
+    """
+    # 隨機旋轉矩陣
+    theta = np.radians(45)  # 旋轉 45 度
+    rotation_matrix = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta), np.cos(theta), 0],
+        [0, 0, 1]
+    ])
+    # 平移向量
+    translation = np.array([0.5, 0.5, 0.2])  # 更大的平移
+    # 構造 4x4 變換矩陣
+    transform_matrix = np.vstack((np.hstack((rotation_matrix, translation[:, None])), [0, 0, 0, 1]))
+    point_cloud.transform(transform_matrix)
+    return point_cloud
 
-# 找到特徵點
-def find_feature_points(point_cloud, fpfh, k=50):
-    entropy = compute_entropy(fpfh)  # 使用熵篩選特徵點
-    feature_indices = np.argsort(entropy)[:k]  # 選擇熵最低的前 k 個點
-    return feature_indices
+# 主程序
+if __name__ == "__main__":
+    voxel_size = 0.01  # 體素大小
 
-source_features = find_feature_points(source, source_fpfh, k=50)
-target_features = find_feature_points(target, target_fpfh, k=50)
+    # 加載 Bunny 點雲
+    source = load_bunny_data()
+    target = copy.deepcopy(source)  # 使用 deepcopy 替代 clone
+    target = apply_random_transform(target)  # 對目標點雲應用隨機變換
 
-# 標記特徵點
-source_colors = np.asarray(source.colors)
-target_colors = np.asarray(target.colors)
+    # 降採樣和法向量估算
+    source_down = preprocess_point_cloud(source, voxel_size)
+    target_down = preprocess_point_cloud(target, voxel_size)
 
-# 設置整體顏色為白色
-source.paint_uniform_color([1.0, 1.0, 1.0])
-target.paint_uniform_color([1.0, 1.0, 1.0])
+    # 計算 FPFH 特徵
+    source_fpfh = compute_fpfh(source_down, voxel_size)
+    target_fpfh = compute_fpfh(target_down, voxel_size)
 
-# 標記特徵點
-source_colors[source_features] = [1.0, 0.0, 0.0]  # 紅色表示源點雲的特徵點
-target_colors[target_features] = [0.0, 0.0, 1.0]  # 藍色表示目標點雲的特徵點
+    # 可視化擬合前的狀態
+    print("展示擬合前的點雲...")
+    o3d.visualization.draw_geometries([source_down.paint_uniform_color([1, 0, 0]),  # 紅色
+                                       target_down.paint_uniform_color([0, 1, 0])])  # 綠色
 
-source_colors[source_features] = [1.0, 0.0, 0.0]  # 紅色表示源點雲的特徵點
-target_colors[target_features] = [0.0, 0.0, 1.0]  # 藍色表示目標點雲的特徵點
+    # 使用 SAC-IA 進行初始對齊
+    result = sac_ia_registration(source_down, target_down, source_fpfh, target_fpfh, voxel_size)
 
-# 自定義顯示函數，設置背景為黑色
-def visualize_with_black_background(point_cloud, title):
-    vis = o3d.visualization.Visualizer()
-    vis.create_window(window_name=title)  # 設置視窗標題
-    vis.add_geometry(point_cloud)
-    opt = vis.get_render_option()
-    opt.background_color = np.asarray([0.0, 0.0, 0.0])  # 設置背景為黑色
-    vis.run()
-    vis.destroy_window()
+    # 輸出對齊結果
+    print("SAC-IA 初始對齊結果:")
+    print(result)
+    print("對齊變換矩陣:")
+    print(result.transformation)
 
-# 分別顯示源點雲和目標點雲
-print("Displaying source point cloud with feature points...")
-visualize_with_black_background(source, "Source Point Cloud")
-
-print("Displaying target point cloud with feature points...")
-visualize_with_black_background(target, "Target Point Cloud")
+    # 可視化擬合後的狀態
+    print("展示擬合後的點雲...")
+    source_down.transform(result.transformation)
+    o3d.visualization.draw_geometries([source_down.paint_uniform_color([1, 0, 0]),  # 紅色
+                                       target_down.paint_uniform_color([0, 1, 0])])  # 綠色
+    

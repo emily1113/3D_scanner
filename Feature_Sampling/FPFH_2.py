@@ -8,7 +8,7 @@ def load_bunny_data():
     bunny_source = o3d.data.BunnyMesh().path  # 內建 Stanford Bunny 模型
     mesh = o3d.io.read_triangle_mesh(bunny_source)
     mesh.compute_vertex_normals()
-    point_cloud = mesh.sample_points_poisson_disk(1000)  # 從網格生成點雲
+    point_cloud = mesh.sample_points_poisson_disk(2000)  # 從網格生成點雲
     return point_cloud
 
 # 2. 加載點雲並降採樣

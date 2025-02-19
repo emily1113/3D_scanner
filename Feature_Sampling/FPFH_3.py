@@ -1,34 +1,71 @@
 import numpy as np
 import open3d as o3d
-import matplotlib.pyplot as plt
-import copy  # 用於深度拷貝
+import copy
 
-# 1. 加載自定義的 PLY 點雲檔案
-def load_custom_point_cloud(file_path):
-    point_cloud = o3d.io.read_point_cloud(file_path)
-    if point_cloud.is_empty():
-        raise ValueError(f"讀取的點雲檔案為空: {file_path}")
-    return point_cloud
+def load_point_cloud(file_path):
+    """
+    讀取指定路徑的點雲檔案，並返回 open3d.geometry.PointCloud 物件。
+    
+    參數:
+        file_path (str): 點雲檔案的完整路徑。
+        
+    回傳:
+        open3d.geometry.PointCloud: 讀取的點雲。
+    """
+    pcd = o3d.io.read_point_cloud(file_path)
+    if pcd.is_empty():
+        raise ValueError(f"無法讀取點雲檔案: {file_path}")
+    return pcd
 
-# 2. 加載點雲並降採樣
 def preprocess_point_cloud(point_cloud, voxel_size):
-    point_cloud_down = point_cloud.voxel_down_sample(voxel_size=voxel_size)
-    point_cloud_down.estimate_normals(
-        search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30)
+    """
+    對點雲進行體素降採樣並估計法向量。
+    
+    參數:
+        point_cloud (open3d.geometry.PointCloud): 原始點雲。
+        voxel_size (float): 降採樣的體素大小。
+        
+    回傳:
+        open3d.geometry.PointCloud: 降採樣且估計好法線的點雲。
+    """
+    pcd_down = point_cloud.voxel_down_sample(voxel_size=voxel_size)
+    pcd_down.estimate_normals(
+        search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 3, max_nn=30)
     )
-    return point_cloud_down
+    return pcd_down
 
-# 3. 計算 FPFH 特徵
 def compute_fpfh(point_cloud, voxel_size):
+    """
+    計算點雲的 FPFH 特徵。
+    
+    參數:
+        point_cloud (open3d.geometry.PointCloud): 降採樣且估計好法線的點雲。
+        voxel_size (float): 體素大小，用於設置搜索半徑。
+        
+    回傳:
+        open3d.pipelines.registration.Feature: FPFH 特徵。
+    """
     fpfh = o3d.pipelines.registration.compute_fpfh_feature(
         point_cloud,
         o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 5, max_nn=100)
     )
     return fpfh
 
-# 4. 使用 SAC-IA 進行初始對齊
 def sac_ia_registration(source, target, source_fpfh, target_fpfh, voxel_size):
-    distance_threshold = voxel_size * 1.5
+    """
+    使用 SAC-IA（Sample Consensus Initial Alignment）進行點雲初始對齊。
+    
+    參數:
+        source (open3d.geometry.PointCloud): 降採樣後的源點雲。
+        target (open3d.geometry.PointCloud): 降採樣後的目標點雲。
+        source_fpfh (open3d.pipelines.registration.Feature): 源點雲的 FPFH 特徵。
+        target_fpfh (open3d.pipelines.registration.Feature): 目標點雲的 FPFH 特徵。
+        voxel_size (float): 體素大小，用於設定對應的距離閾值。
+        
+    回傳:
+        registration result: 包含初始對齊結果及變換矩陣。
+    """
+    distance_threshold = voxel_size * 3
     result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
         source, target, source_fpfh, target_fpfh,
         mutual_filter=True,
@@ -43,75 +80,61 @@ def sac_ia_registration(source, target, source_fpfh, target_fpfh, voxel_size):
     )
     return result
 
-# 5. 對點雲應用隨機變換
-def apply_random_transform(point_cloud):
-    theta = np.radians(45)  # 旋轉 45 度
-    rotation_matrix = np.array([
-        [np.cos(theta), -np.sin(theta), 0],
-        [np.sin(theta), np.cos(theta), 0],
-        [0, 0, 1]
-    ])
-    translation = np.array([0.5, 0.5, 0.2])  # 更大的平移
-    transform_matrix = np.vstack((np.hstack((rotation_matrix, translation[:, None])), [0, 0, 0, 1]))
-    point_cloud.transform(transform_matrix)
-    return point_cloud, transform_matrix
+def display_source_and_target(source, target):
+    """
+    顯示初始的 source（紅色）與 target（綠色）點雲。
+    """
+    source_copy = copy.deepcopy(source)
+    target_copy = copy.deepcopy(target)
+    source_copy.paint_uniform_color([1, 0, 0])  # 紅色
+    target_copy.paint_uniform_color([0, 1, 0])  # 綠色
+    o3d.visualization.draw_geometries(
+        [source_copy, target_copy],
+        window_name="Initial Source (Red) and Target (Green) Point Clouds"
+    )
 
-# 6. 儲存點雲為 PLY 並顯示
-def save_and_display_point_cloud(point_cloud, filename, color=None):
-    if color:
-        point_cloud.paint_uniform_color(color)
-    o3d.io.write_point_cloud(filename, point_cloud)
-    print(f"點雲已儲存為 PLY 檔案: {filename}")
-    o3d.visualization.draw_geometries([point_cloud], window_name=f"Point Cloud: {filename}")
+def display_alignment_result(source_aligned, target):
+    """
+    顯示對齊後的點雲結果（source 為紅色，target 為綠色）。
+    """
+    source_copy = copy.deepcopy(source_aligned)
+    target_copy = copy.deepcopy(target)
+    source_copy.paint_uniform_color([1, 0, 0])
+    target_copy.paint_uniform_color([0, 1, 0])
+    o3d.visualization.draw_geometries(
+        [source_copy, target_copy],
+        window_name="Aligned Point Clouds"
+    )
 
-# 7. 比較兩個旋轉矩陣是否一致
-def compare_rotation_matrices(original_matrix, estimated_matrix):
-    # 提取旋轉矩陣
-    original_rotation = original_matrix[:3, :3]
-    estimated_rotation = estimated_matrix[:3, :3]
-
-    # 計算 Frobenius norm 差異
-    diff = np.linalg.norm(original_rotation - estimated_rotation)
-    print(f"旋轉矩陣差異 (Frobenius norm): {diff}")
-
-    # 計算相對旋轉角度
-    relative_rotation = np.dot(original_rotation.T, estimated_rotation)
-    trace = np.trace(relative_rotation)
-    angle = np.arccos((trace - 1) / 2)
-    angle_degrees = np.degrees(angle)
-    print(f"相對旋轉角度 (degrees): {angle_degrees}")
-
-    # 判斷是否一致
-    if diff < 1e-6 and angle_degrees < 1e-3:
-        print("計算出的旋轉矩陣與原先變換矩陣一致。")
-    else:
-        print("計算出的旋轉矩陣與原先變換矩陣不一致。")
-
-# 主程式
 if __name__ == "__main__":
-    voxel_size = 0.01  # 體素大小
+    # 參數設定
+    voxel_size = 0.05  # 體素大小，可根據點雲尺度進行調整
 
-    # 指定來源和目標點雲檔案路徑
-    source_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00001.ply"  # 替換為實際檔案路徑
-    target_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00010.ply"  # 替換為實際檔案路徑
+    # 指定 source 與 target 的點雲檔案路徑（請依實際情況修改）
+    source_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply"
+    target_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00010.ply"
 
-    # 加載自定義點雲
-    source = load_custom_point_cloud(source_file)
-    target = load_custom_point_cloud(target_file)
+    # 讀取點雲
+    print("讀取點雲資料...")
+    source = load_point_cloud(source_file)
+    target = load_point_cloud(target_file)
 
-    # 降採樣和法向量估算
+    # 顯示初始點雲
+    print("展示初始的點雲...")
+    display_source_and_target(source, target)
+
+    # 降採樣與法向量估算
+    print("進行點雲預處理 (降採樣與法向量估算)...")
     source_down = preprocess_point_cloud(source, voxel_size)
     target_down = preprocess_point_cloud(target, voxel_size)
 
-    # 儲存並顯示降採樣後的源和目標點雲
-    save_and_display_point_cloud(source_down, "source_down.ply", color=[1, 0, 0])  # 紅色
-    save_and_display_point_cloud(target_down, "target_down.ply", color=[0, 1, 0])  # 綠色
-
     # 計算 FPFH 特徵
+    print("計算 FPFH 特徵...")
     source_fpfh = compute_fpfh(source_down, voxel_size)
     target_fpfh = compute_fpfh(target_down, voxel_size)
 
     # 使用 SAC-IA 進行初始對齊
+    print("進行 SAC-IA 初始對齊...")
     result = sac_ia_registration(source_down, target_down, source_fpfh, target_fpfh, voxel_size)
 
     # 輸出對齊結果
@@ -120,17 +143,10 @@ if __name__ == "__main__":
     print("對齊變換矩陣:")
     print(result.transformation)
 
-    # 比較旋轉矩陣是否一致
-    compare_rotation_matrices(np.eye(4), result.transformation)
-
-    # 將變換應用到源點雲（SAC-IA 初始對齊結果）
+    # 將對齊變換應用到 source 點雲上
     source_aligned = copy.deepcopy(source_down)
     source_aligned.transform(result.transformation)
 
-    # 儲存並顯示初始對齊結果
-    save_and_display_point_cloud(source_aligned, "sac_ia_aligned.ply", color=[1, 0, 0])  # 紅色
-    save_and_display_point_cloud(target_down, "target.ply", color=[0, 1, 0])  # 綠色
-    print(f"源點雲降採樣後點數: {len(source_down.points)}")
-    print(f"目標點雲降採樣後點數: {len(target_down.points)}")
-    print(f"FPFH 特徵維度（源）: {source_fpfh.data.shape}")
-    print(f"FPFH 特徵維度（目標）: {target_fpfh.data.shape}")
+    # 顯示對齊後的點雲
+    print("展示對齊後的點雲...")
+    display_alignment_result(source_aligned, target_down)

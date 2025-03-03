@@ -1,31 +1,53 @@
-import open3d as o3d
-import copy
+# With this sample, you can calculate normals and save the point cloud with normals. The normals can be calculated on the camera or the computer.
 
-# 讀取點雲檔案
-pcd = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply")
+from mecheye.shared import *
+from mecheye.area_scan_3d_camera import *
+from mecheye.area_scan_3d_camera_utils import find_and_connect, confirm_capture_3d
 
-# 複製一份原始點雲作為「處理前」
-pcd_before = copy.deepcopy(pcd)
 
-# 對原始點雲估算法向量（處理後）
-pcd.estimate_normals(
-    search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.001, max_nn=20)
-)
-pcd_after = copy.deepcopy(pcd)
+class CapturePointCloudWithNormals(object):
+    def __init__(self):
+        self.camera = Camera()
+        self.frame_3d = Frame3D()
 
-# 為了讓兩個點雲分開顯示，可以對處理後的點雲做一個平移
-# 例如：向 x 軸正方向平移一個點雲寬度的距離
-bounding_box = pcd_before.get_axis_aligned_bounding_box()
-width = bounding_box.get_extent()[0]
-pcd_after.translate((width * 1.2, 0, 0))
+    # Calculate the normals of the points on the camera and save the point cloud with normals to file
+    def capture_point_cloud_with_normals_calculated_on_camera(self):
+        point_cloud_file = "PointCloud_1.ply"
+        if self.camera.capture_3d_with_normal(self.frame_3d).is_ok():
+            show_error(
+                self.frame_3d.save_untextured_point_cloud_with_normals(FileFormat_PLY, point_cloud_file))
+            return True
+        else:
+            print("Failed to capture the point cloud.")
+            self.camera.disconnect()
+            print("Disconnected from the camera successfully.")
+            return False
 
-# 為了區分顯示，給兩個點雲上不同顏色
-pcd_before.paint_uniform_color([1, 0, 0])  # 紅色：處理前
-pcd_after.paint_uniform_color([0, 1, 0])   # 綠色：處理後
+    # Calculate the normals of the points on the computer and save the point cloud with normals to file
+    def capture_point_cloud_with_normals_calculated_locally(self):
+        point_cloud_file = "PointCloud_2.ply"
+        if self.camera.capture_3d(self.frame_3d).is_ok():
+            show_error(
+                self.frame_3d.save_untextured_point_cloud_with_normals(FileFormat_PLY, point_cloud_file))
+            return True
+        else:
+            print("Failed to capture the point cloud.")
+            self.camera.disconnect()
+            print("Disconnected from the camera successfully.")
+            return False
 
-# 使用 draw_geometries 顯示時，對處理後的點雲開啟顯示法向量
-o3d.visualization.draw_geometries(
-    [pcd_before, pcd_after],
-    window_name="Before (Red) and After (Green) with Normals",
-    point_show_normal=True
-)
+    def main(self):
+        if find_and_connect(self.camera):
+            if not confirm_capture_3d():
+                return
+            if not self.capture_point_cloud_with_normals_calculated_on_camera():
+                return
+            if not self.capture_point_cloud_with_normals_calculated_locally():
+                return
+            self.camera.disconnect()
+            print("Disconnected from the camera successfully.")
+
+
+if __name__ == '__main__':
+    a = CapturePointCloudWithNormals()
+    a.main()

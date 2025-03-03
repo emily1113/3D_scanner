@@ -1,13 +1,21 @@
-import open3d as o3d
+from mecheye.shared import *
+from mecheye.area_scan_3d_camera import *
 
-# 讀取點雲文件
-pcd = o3d.io.read_point_cloud("C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00001.ply")
+class ComputeNormalsFromPly(object):
+    def __init__(self):
+        self.frame_3d = Frame3D()
 
-# 可視化點雲
-o3d.visualization.draw_geometries([pcd])
+    # 讀取指定路徑的 PLY 點雲，計算法向量後儲存至新檔案
+    def compute_normals_from_loaded_point_cloud(self, input_file, output_file):
+        show_error(self.frame_3d.save_untextured_point_cloud_with_normals(FileFormat_PLY, output_file))
 
-# 使用 KDTree 搜索參數估算法向量，這裡設定半徑和鄰域點數
-pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
 
-# 顯示點雲及其法向量
-o3d.visualization.draw_geometries([pcd], point_show_normal=True)
+
+    def main(self):
+        input_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply"      # 請修改為實際的輸入檔案路徑
+        output_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001_out.ply"      # 請修改為實際的輸出檔案路徑
+        self.compute_normals_from_loaded_point_cloud(input_file, output_file)
+
+if __name__ == '__main__':
+    a = ComputeNormalsFromPly()
+    a.main()

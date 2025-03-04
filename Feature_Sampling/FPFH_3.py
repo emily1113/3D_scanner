@@ -1,6 +1,7 @@
 import numpy as np
 import open3d as o3d
 import copy
+from sklearn.neighbors import NearestNeighbors
 
 def load_point_cloud(file_path):
     """
@@ -17,9 +18,34 @@ def load_point_cloud(file_path):
         raise ValueError(f"無法讀取點雲檔案: {file_path}")
     return pcd
 
+def compute_normals_custom(points, k=15):
+    """
+    利用 k 近鄰與 PCA 計算點雲每個點的法向量。
+    
+    參數:
+        points (np.ndarray): (N, 3) 的點雲座標陣列。
+        k (int): 鄰域中使用的點數量。
+    
+    回傳:
+        np.ndarray: (N, 3) 的法向量陣列。
+    """
+    n_points = points.shape[0]
+    normals = np.zeros_like(points)
+    nbrs = NearestNeighbors(n_neighbors=k, algorithm='auto').fit(points)
+    distances, indices = nbrs.kneighbors(points)
+    
+    for i in range(n_points):
+        neighbor_pts = points[indices[i]]
+        mean = neighbor_pts.mean(axis=0)
+        cov = np.dot((neighbor_pts - mean).T, (neighbor_pts - mean)) / k
+        eigenvalues, eigenvectors = np.linalg.eigh(cov)
+        # 取最小特徵值所對應的特徵向量作為法向量
+        normals[i] = eigenvectors[:, 0]
+    return normals
+
 def preprocess_point_cloud(point_cloud, voxel_size):
     """
-    對點雲進行體素降採樣並估計法向量。
+    對點雲進行體素降採樣並利用自訂方法估計法向量。
     
     參數:
         point_cloud (open3d.geometry.PointCloud): 原始點雲。
@@ -28,10 +54,14 @@ def preprocess_point_cloud(point_cloud, voxel_size):
     回傳:
         open3d.geometry.PointCloud: 降採樣且估計好法線的點雲。
     """
+    # 體素降採樣
     pcd_down = point_cloud.voxel_down_sample(voxel_size=voxel_size)
-    pcd_down.estimate_normals(
-        search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 3, max_nn=30)
-    )
+    
+    # 利用自訂方法計算法向量
+    points_down = np.asarray(pcd_down.points)
+    normals = compute_normals_custom(points_down, k=15)
+    pcd_down.normals = o3d.utility.Vector3dVector(normals)
+    
     return pcd_down
 
 def compute_fpfh(point_cloud, voxel_size):
@@ -123,8 +153,8 @@ if __name__ == "__main__":
     print("展示初始的點雲...")
     display_source_and_target(source, target)
 
-    # 降採樣與法向量估算
-    print("進行點雲預處理 (降採樣與法向量估算)...")
+    # 降採樣與自訂法向量估算
+    print("進行點雲預處理 (降採樣與自訂法向量估算)...")
     source_down = preprocess_point_cloud(source, voxel_size)
     target_down = preprocess_point_cloud(target, voxel_size)
 

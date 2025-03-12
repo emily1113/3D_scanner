@@ -22,7 +22,7 @@ point_cloud = load_bunny_data()
 # 將點雲寫入 PLY 檔案，再使用 PlyData 讀取
 o3d.io.write_point_cloud("bunny_point_cloud.ply", point_cloud)
 ply1 = PlyData.read("bunny_point_cloud.ply")
-ply2 = PlyData.read("C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply")
+ply2 = PlyData.read("C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_0.ply")
 
 # 比較 header
 print(ply1.header)

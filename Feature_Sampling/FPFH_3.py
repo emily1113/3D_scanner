@@ -141,8 +141,8 @@ if __name__ == "__main__":
     voxel_size = 0.05  # 體素大小，可根據點雲尺度進行調整
 
     # 指定 source 與 target 的點雲檔案路徑（請依實際情況修改）
-    source_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply"
-    target_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00010.ply"
+    source_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00001.ply"
+    target_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00010.ply"
 
     # 讀取點雲
     print("讀取點雲資料...")

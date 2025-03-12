@@ -32,7 +32,7 @@ def compute_normals(points, k=15, view_point=np.array([0, 0, 0])):
     return normals
 
 # 讀取點雲（請根據實際路徑替換檔案名稱）
-input_path = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_00001.ply"
+input_path = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_00003.ply"
 pcd = o3d.io.read_point_cloud(input_path)
 points = np.asarray(pcd.points)
 
@@ -42,7 +42,7 @@ normals = compute_normals(points, k=15, view_point=view_point)
 pcd.normals = o3d.utility.Vector3dVector(normals)
 
 # 存檔方式一：存成包含法向量資訊的 PLY 檔案
-output_ply_path = "C:/Users/ASUS/Desktop/POINT/red/furiren/point_cloud_with_normals.ply"
+output_ply_path = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_3.ply"
 o3d.io.write_point_cloud(output_ply_path, pcd)
 print("點雲與法向量已存入：", output_ply_path)
 

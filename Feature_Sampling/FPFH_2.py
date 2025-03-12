@@ -23,7 +23,7 @@ def preprocess_point_cloud(point_cloud, voxel_size):
 def compute_fpfh(point_cloud, voxel_size):
     fpfh = o3d.pipelines.registration.compute_fpfh_feature(
         point_cloud,
-        o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 5, max_nn=100)
+        o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=20)
     )
     return fpfh
 
@@ -37,7 +37,7 @@ def sac_ia_registration(source, target, source_fpfh, target_fpfh, voxel_size):
         estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
         ransac_n=4,
         checkers=[
-            o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.5),
             o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)
         ],
         criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500)

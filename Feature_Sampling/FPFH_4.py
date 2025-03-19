@@ -5,6 +5,7 @@ from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from plyfile import PlyData
 import random
+import time  # 為了延時顯示
 
 # ------------------ 讀取與下採樣 ------------------
 
@@ -337,6 +338,47 @@ if __name__ == "__main__":
     source_fpfh = numpy_to_o3d_feature(source_fpfh_np)
     target_fpfh = numpy_to_o3d_feature(target_fpfh_np)
 
+    # ------------------ 標示特徵點 ------------------
+    # 以每個點的 FPFH 能量 (L2 範數) 作為評估依據，選取前 10% 能量最高的點作為特徵點
+
+    ## Source 部分
+    fpfh_norms_source = np.linalg.norm(source_fpfh_np, axis=1)
+    num_keypoints_source = int(0.1 * len(fpfh_norms_source))
+    if num_keypoints_source < 1:
+        num_keypoints_source = 1
+    keypoint_indices_source = np.argsort(fpfh_norms_source)[-num_keypoints_source:]
+    print("Source 選取的特徵點索引:", keypoint_indices_source)
+
+    keypoints_source_pcd = o3d.geometry.PointCloud()
+    keypoints_source_pcd.points = o3d.utility.Vector3dVector(points_source[keypoint_indices_source])
+    keypoints_source_pcd.paint_uniform_color([0, 0, 1])
+    # 將下採樣點雲標記為灰色
+    source_down.paint_uniform_color([0.8, 0.8, 0.8])
+
+    ## Target 部分
+    fpfh_norms_target = np.linalg.norm(target_fpfh_np, axis=1)
+    num_keypoints_target = int(0.1 * len(fpfh_norms_target))
+    if num_keypoints_target < 1:
+        num_keypoints_target = 1
+    keypoint_indices_target = np.argsort(fpfh_norms_target)[-num_keypoints_target:]
+    print("Target 選取的特徵點索引:", keypoint_indices_target)
+
+    keypoints_target_pcd = o3d.geometry.PointCloud()
+    keypoints_target_pcd.points = o3d.utility.Vector3dVector(points_target[keypoint_indices_target])
+    keypoints_target_pcd.paint_uniform_color([0, 0, 1])
+    target_down.paint_uniform_color([0.8, 0.8, 0.8])
+
+    # 暫停 3 秒後依序顯示 source 與 target 的特徵點標示
+    time.sleep(5)
+    o3d.visualization.draw_geometries([source_down, keypoints_source_pcd],
+                                      window_name="Source FPFH 特徵點標示",
+                                      width=1600, height=1200)
+    time.sleep(5)
+    o3d.visualization.draw_geometries([target_down, keypoints_target_pcd],
+                                      window_name="Target FPFH 特徵點標示",
+                                      width=1600, height=1200)
+
+    # ------------------ 配準與視覺化 ------------------
     # 配準前視覺化，將 source 著紅色，target 著綠色
     source_down.paint_uniform_color([1, 0, 0])
     target_down.paint_uniform_color([0, 1, 0])

@@ -176,7 +176,7 @@ if __name__ == "__main__":
     nbins = 11              # 直方圖的 bin 數
 
     # 指定點雲檔案路徑（請根據實際路徑調整）
-    file_path = "C:/Users/ASUS/Desktop/POINT/red/FPFH/furiren/point_cloud_with_normals_6.ply"
+    file_path = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_0.ply"
 
     # 讀取點雲
     pcd = load_point_cloud(file_path)

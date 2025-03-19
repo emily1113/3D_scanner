@@ -12,7 +12,7 @@ print("下採樣前的點數：", points.shape[0])
 
 # 均勻下採樣：每隔 5 個點選取一個
 downsampled_points = points[::5]
-print("均勻下採樣後的點數：", downsampled_points.shape[0])
+print("下採樣後的點數：", downsampled_points.shape[0])
 
 # 3D 可視化
 fig = plt.figure()

@@ -290,16 +290,16 @@ def display_point_clouds(*point_clouds, title="Point Clouds"):
 if __name__ == "__main__":
     # 參數設定
     sample_step = 2          # 每隔 2 個點取一個進行下採樣
-    voxel_size = 0.1         # 用於配準門檻設定（不直接用於 FPFH 計算）
-    search_radius = 0.2      # 自訂 FPFH 計算中的鄰域搜尋半徑
+    voxel_size = 0.01         # 用於配準門檻設定（不直接用於 FPFH 計算）
+    search_radius = 0.05      # 自訂 FPFH 計算中的鄰域搜尋半徑
     distance_threshold = voxel_size * 3.0  # SAC-IA 配準門檻（此處用於 RANSAC 中內點判定）
-    max_iterations = 1000    # RANSAC 最大迭代次數
-    inlier_threshold = 0.05  # 內點距離門檻
+    max_iterations = 4000    # RANSAC 最大迭代次數
+    inlier_threshold = 0.03  # 內點距離門檻
     ransac_n = 4             # 每次 RANSAC 隨機採樣的對應點數
 
     # 指定 source 與 target 點雲檔案路徑
     source_file = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_0.ply"
-    target_file = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_0.ply"
+    target_file = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_3.ply"
 
     # 讀取點雲
     source = load_point_cloud(source_file)

@@ -267,18 +267,18 @@ def sac_ia_registration_custom(source_points, target_points, source_features, ta
     return result
 
 # ------------------ ICP 精細配準（此部分先註解掉） ------------------
-# def refine_registration(source, target, initial_transformation, distance_threshold):
-#     """
-#     使用 ICP (Iterative Closest Point) 進行精細配準，這裡採用點到平面方法。
-#     此部分仍使用 Open3D 的內建函式進行 ICP 配準。
-#     """
-#     result_icp = o3d.pipelines.registration.registration_icp(
-#         source, target,
-#         max_correspondence_distance=distance_threshold,
-#         init=initial_transformation,
-#         estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPlane()
-#     )
-#     return result_icp
+def refine_registration(source, target, initial_transformation, distance_threshold):
+    """
+    使用 ICP (Iterative Closest Point) 進行精細配準，這裡採用點到平面方法。
+    此部分仍使用 Open3D 的內建函式進行 ICP 配準。
+    """
+    result_icp = o3d.pipelines.registration.registration_icp(
+        source, target,
+        max_correspondence_distance=distance_threshold,
+        init=initial_transformation,
+        estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPlane()
+    )
+    return result_icp
 
 def display_point_clouds(*point_clouds, title="Point Clouds"):
     """
@@ -290,9 +290,9 @@ def display_point_clouds(*point_clouds, title="Point Clouds"):
 
 if __name__ == "__main__":
     # 參數設定
-    sample_step = 2          # 每隔 2 個點取一個進行下採樣
+    sample_step = 5          # 每隔 2 個點取一個進行下採樣
     voxel_size = 0.01         # 用於配準門檻設定（不直接用於 FPFH 計算）
-    search_radius = 0.05      # 自訂 FPFH 計算中的鄰域搜尋半徑
+    search_radius = 0.01      # 自訂 FPFH 計算中的鄰域搜尋半徑
     distance_threshold = voxel_size * 3.0  # SAC-IA 配準門檻（此處用於 RANSAC 中內點判定）
     max_iterations = 4000    # RANSAC 最大迭代次數
     inlier_threshold = 0.03  # 內點距離門檻
@@ -369,12 +369,12 @@ if __name__ == "__main__":
     target_down.paint_uniform_color([0.8, 0.8, 0.8])
 
     # 暫停 3 秒後依序顯示 source 與 target 的特徵點標示
-    time.sleep(5)
-    o3d.visualization.draw_geometries([source_down, keypoints_source_pcd],
+    time.sleep(10)
+    o3d.visualization.draw_geometries([ keypoints_source_pcd, source_down],
                                       window_name="Source FPFH 特徵點標示",
                                       width=1600, height=1200)
-    time.sleep(5)
-    o3d.visualization.draw_geometries([target_down, keypoints_target_pcd],
+    time.sleep(10 )
+    o3d.visualization.draw_geometries([keypoints_target_pcd, target_down],
                                       window_name="Target FPFH 特徵點標示",
                                       width=1600, height=1200)
 
@@ -401,14 +401,14 @@ if __name__ == "__main__":
     display_point_clouds(source_down, target_down, title="After Registration (Custom SAC-IA)")
 
     # ICP 精細配準部分先註解掉
-    # refined_distance_threshold = voxel_size * 1.5
-    # result_icp = refine_registration(source_down, target_down, sac_result["transformation"], refined_distance_threshold)
-    # print("ICP 精細配準結果:")
-    # print(result_icp)
-    # print("ICP 對齊變換矩陣:")
-    # print(result_icp.transformation)
-    #
-    # # 將 ICP 精細配準結果應用於 source 點雲並視覺化
-    # source_down.transform(result_icp.transformation)
-    # source_down.paint_uniform_color([0, 0, 1])
-    # display_point_clouds(source_down, target_down, title="After Registration (Refined ICP)")
+    refined_distance_threshold = voxel_size * 1.5
+    result_icp = refine_registration(source_down, target_down, sac_result["transformation"], refined_distance_threshold)
+    print("ICP 精細配準結果:")
+    print(result_icp)
+    print("ICP 對齊變換矩陣:")
+    print(result_icp.transformation)
+    
+    # 將 ICP 精細配準結果應用於 source 點雲並視覺化
+    source_down.transform(result_icp.transformation)
+    source_down.paint_uniform_color([0, 0, 1])
+    display_point_clouds(source_down, target_down, title="After Registration (Refined ICP)")

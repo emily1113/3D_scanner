@@ -171,15 +171,19 @@ def compute_fpfh_custom(points, normals, search_radius, nbins=11):
 
 if __name__ == "__main__":
     # 參數設定
-    sample_step = 10         # 每隔 2 個點取一個
+    sample_step = 5         # 每隔 5 個點取一個
     search_radius = 0.1     # FPFH 計算時使用的鄰域搜尋半徑
     nbins = 11              # 直方圖的 bin 數
 
-    # 指定點雲檔案路徑（請根據實際路徑調整）
-    file_path = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_0.ply"
-
-    # 讀取點雲
-    pcd = load_point_cloud(file_path)
+    # ------------------ 使用 Bunny 模型 ------------------
+    # 利用 Open3D 內建資料集載入 Stanford Bunny 網格模型，
+    # 並均勻取樣轉換成點雲（此處取樣 2000 個點，可依需求調整）
+    bunny_data = o3d.data.BunnyMesh()
+    mesh = o3d.io.read_triangle_mesh(bunny_data.path)
+    if not mesh.has_vertex_normals():
+        mesh.compute_vertex_normals()
+    pcd = mesh.sample_points_uniformly(number_of_points=2000)
+    print("使用 Bunny 模型，點雲點數:", len(pcd.points))
 
     # 若點雲缺少法向量，則計算法向量
     if not pcd.has_normals():
@@ -226,13 +230,11 @@ if __name__ == "__main__":
     keypoints_pcd.points = o3d.utility.Vector3dVector(points[keypoint_indices])
     keypoints_pcd.paint_uniform_color([1, 0, 0])
 
-    # 在視覺化中同時顯示下採樣點雲與特徵點
     # 下採樣點雲顯示為灰色
     pcd_down.paint_uniform_color([0.8, 0.8, 0.8])
-    # o3d.visualization.draw_geometries([ keypoints_pcd],
-    #                                   window_name="FPFH 特徵點標示",
-    #                                   width=800, height=600)
-    time.sleep(5)
-    o3d.visualization.draw_geometries([keypoints_pcd,pcd_down],
+    
+    # 暫停數秒後進行視覺化
+    time.sleep(3)
+    o3d.visualization.draw_geometries([keypoints_pcd, pcd_down],
                                       window_name="FPFH 特徵點標示",
                                       width=1600, height=1200)

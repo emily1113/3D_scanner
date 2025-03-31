@@ -176,7 +176,7 @@ if __name__ == "__main__":
     nbins = 11              # 直方圖的 bin 數
 
     # 指定點雲檔案路徑（請根據實際路徑調整）
-    file_path = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_0.ply"
+    file_path = "C:/Users/ASUS/Desktop/POINT/red/FPFH/furiren/point_cloud_with_normals_0.ply"
 
     # 讀取點雲
     pcd = load_point_cloud(file_path)
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     # o3d.visualization.draw_geometries([ keypoints_pcd],
     #                                   window_name="FPFH 特徵點標示",
     #                                   width=800, height=600)
-    time.sleep(5)
+    time.sleep(10)
     o3d.visualization.draw_geometries([keypoints_pcd,pcd_down],
                                       window_name="FPFH 特徵點標示",
                                       width=1600, height=1200)

@@ -5,7 +5,6 @@ from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from plyfile import PlyData
 import random
-import time  # 為了延時顯示
 
 # ------------------ 讀取與下採樣 ------------------
 
@@ -266,7 +265,8 @@ def sac_ia_registration_custom(source_points, target_points, source_features, ta
     result = {"transformation": best_transformation, "inlier_count": best_inlier_count}
     return result
 
-# ------------------ ICP 精細配準（此部分先註解掉） ------------------
+# ------------------ 配準相關 ICP 精細調整（使用 Open3D） ------------------
+
 def refine_registration(source, target, initial_transformation, distance_threshold):
     """
     使用 ICP (Iterative Closest Point) 進行精細配準，這裡採用點到平面方法。
@@ -290,19 +290,19 @@ def display_point_clouds(*point_clouds, title="Point Clouds"):
 
 if __name__ == "__main__":
     # 參數設定
-    sample_step = 5          # 每隔 2 個點取一個進行下採樣
-    voxel_size = 0.01         # 用於配準門檻設定（不直接用於 FPFH 計算）
-    search_radius = 0.01      # 自訂 FPFH 計算中的鄰域搜尋半徑
+    sample_step = 2          # 每隔 2 個點取一個進行下採樣
+    voxel_size = 0.1         # 用於 ICP 配準與門檻設定（不直接用於 FPFH 計算）
+    search_radius = 0.2      # 自訂 FPFH 計算中的鄰域搜尋半徑
     distance_threshold = voxel_size * 3.0  # SAC-IA 配準門檻（此處用於 RANSAC 中內點判定）
-    max_iterations = 4000    # RANSAC 最大迭代次數
-    inlier_threshold = 0.03  # 內點距離門檻
-    ransac_n = 4             # 每次 RANSAC 隨機採樣的對應點數
+    max_iterations = 1000    # RANSAC 最大迭代次數
+    inlier_threshold = 0.05  # 內點距離門檻
+    ransac_n = 12             # 每次 RANSAC 隨機採樣的對應點數
 
     # 指定 source 與 target 點雲檔案路徑
-    source_file = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_0.ply"
-    target_file = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_3.ply"
+    source_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/double.ply"
+    target_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/double_3.ply"
 
-    # 讀取點雲
+    # 讀取點雲Q
     source = load_point_cloud(source_file)
     target = load_point_cloud(target_file)
 
@@ -338,47 +338,6 @@ if __name__ == "__main__":
     source_fpfh = numpy_to_o3d_feature(source_fpfh_np)
     target_fpfh = numpy_to_o3d_feature(target_fpfh_np)
 
-    # ------------------ 標示特徵點 ------------------
-    # 以每個點的 FPFH 能量 (L2 範數) 作為評估依據，選取前 10% 能量最高的點作為特徵點
-
-    ## Source 部分
-    fpfh_norms_source = np.linalg.norm(source_fpfh_np, axis=1)
-    num_keypoints_source = int(0.1 * len(fpfh_norms_source))
-    if num_keypoints_source < 1:
-        num_keypoints_source = 1
-    keypoint_indices_source = np.argsort(fpfh_norms_source)[-num_keypoints_source:]
-    print("Source 選取的特徵點索引:", keypoint_indices_source)
-
-    keypoints_source_pcd = o3d.geometry.PointCloud()
-    keypoints_source_pcd.points = o3d.utility.Vector3dVector(points_source[keypoint_indices_source])
-    keypoints_source_pcd.paint_uniform_color([0, 0, 1])
-    # 將下採樣點雲標記為灰色
-    source_down.paint_uniform_color([0.8, 0.8, 0.8])
-
-    ## Target 部分
-    fpfh_norms_target = np.linalg.norm(target_fpfh_np, axis=1)
-    num_keypoints_target = int(0.1 * len(fpfh_norms_target))
-    if num_keypoints_target < 1:
-        num_keypoints_target = 1
-    keypoint_indices_target = np.argsort(fpfh_norms_target)[-num_keypoints_target:]
-    print("Target 選取的特徵點索引:", keypoint_indices_target)
-
-    keypoints_target_pcd = o3d.geometry.PointCloud()
-    keypoints_target_pcd.points = o3d.utility.Vector3dVector(points_target[keypoint_indices_target])
-    keypoints_target_pcd.paint_uniform_color([0, 0, 1])
-    target_down.paint_uniform_color([0.8, 0.8, 0.8])
-
-    # 暫停 3 秒後依序顯示 source 與 target 的特徵點標示
-    time.sleep(10)
-    o3d.visualization.draw_geometries([ keypoints_source_pcd, source_down],
-                                      window_name="Source FPFH 特徵點標示",
-                                      width=1600, height=1200)
-    time.sleep(10 )
-    o3d.visualization.draw_geometries([keypoints_target_pcd, target_down],
-                                      window_name="Target FPFH 特徵點標示",
-                                      width=1600, height=1200)
-
-    # ------------------ 配準與視覺化 ------------------
     # 配準前視覺化，將 source 著紅色，target 著綠色
     source_down.paint_uniform_color([1, 0, 0])
     target_down.paint_uniform_color([0, 1, 0])
@@ -400,14 +359,14 @@ if __name__ == "__main__":
     source_down.paint_uniform_color([0, 0, 1])
     display_point_clouds(source_down, target_down, title="After Registration (Custom SAC-IA)")
 
-    # ICP 精細配準部分先註解掉
+    # 後續可接 ICP 精細配準（此部分仍使用 Open3D 內建 ICP）
     refined_distance_threshold = voxel_size * 1.5
     result_icp = refine_registration(source_down, target_down, sac_result["transformation"], refined_distance_threshold)
     print("ICP 精細配準結果:")
     print(result_icp)
     print("ICP 對齊變換矩陣:")
     print(result_icp.transformation)
-    
+
     # 將 ICP 精細配準結果應用於 source 點雲並視覺化
     source_down.transform(result_icp.transformation)
     source_down.paint_uniform_color([0, 0, 1])

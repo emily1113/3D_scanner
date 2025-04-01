@@ -96,13 +96,17 @@ def extract_number(file_path):
 if __name__ == "__main__":
     # 參數設定
     sample_step = 2          # 每隔 2 個點取一個進行下採樣
-    voxel_size = 0.1         # 用於設定 ICP 配準的門檻
-    distance_threshold = voxel_size * 3.0   # ICP 內點門檻
-    refined_distance_threshold = voxel_size * 1.5  # ICP 精細配準門檻
+    voxel_size = 0.1        # 用於設定 ICP 配準的門檻
+    distance_threshold = voxel_size * 4   # ICP 內點門檻
+    refined_distance_threshold = voxel_size * 1.2  # ICP 精細配準門檻
 
     # 指定 source 與 target 點雲檔案路徑
-    source_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00000.ply"
-    target_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00004.ply"
+    source_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5_cut/processed/normals_point_cloud_00000.ply"
+    target_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5_cut/processed/normals_point_cloud_00002.ply"
+
+    # source_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00000.ply"
+    # target_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00002.ply"
+
 
     # 讀取點雲
     source = load_point_cloud(source_file)

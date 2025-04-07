@@ -1,6 +1,7 @@
 import numpy as np
 import open3d as o3d
 import re
+import copy  # 新增：用來複製點雲
 
 # ------------------ 讀取與下採樣 ------------------
 
@@ -96,18 +97,15 @@ def extract_number(file_path):
 if __name__ == "__main__":
     # 參數設定
     sample_step = 2          # 每隔 2 個點取一個進行下採樣
-    voxel_size = 0.1        # 用於設定 ICP 配準的門檻
+    voxel_size = 0.1         # 用於設定 ICP 配準的門檻
     distance_threshold = voxel_size * 4   # ICP 內點門檻
     refined_distance_threshold = voxel_size * 1.2  # ICP 精細配準門檻
 
     # 指定 source 與 target 點雲檔案路徑
-    source_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5_cut/processed/normals_point_cloud_00000.ply"
-    target_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5_cut/processed/normals_point_cloud_00002.ply"
-
-    # source_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00000.ply"
-    # target_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00002.ply"
-
-
+    # source_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5_cut/processed/normals_point_cloud_00000.ply"
+    # target_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5_cut/processed/normals_point_cloud_00002.ply"
+    source_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00000.ply"
+    target_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00002.ply"
     # 讀取點雲
     source = load_point_cloud(source_file)
     target = load_point_cloud(target_file)
@@ -128,6 +126,9 @@ if __name__ == "__main__":
     if not target_down.has_normals():
         target_down.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30))
 
+    # 儲存 source 下採樣前的狀態 (用以比較前後)
+    source_down_before = copy.deepcopy(source_down)
+
     # 配準前視覺化，將 source 著紅色，target 著綠色
     source_down.paint_uniform_color([1, 0, 0])
     target_down.paint_uniform_color([0, 1, 0])
@@ -147,6 +148,12 @@ if __name__ == "__main__":
     source_down.transform(result_icp.transformation)
     source_down.paint_uniform_color([0, 0, 1])
     display_point_clouds(source_down, target_down, title="ICP 配準結果")
+
+    # 新增：比較 source 配準前後的差異
+    # 配準前的 source_down_before 保持紅色，配準後的 source_down 為藍色
+    source_down_before.paint_uniform_color([1, 0, 0])
+    source_down.paint_uniform_color([0, 0, 1])
+    display_point_clouds(source_down_before, source_down, title="Source 前後比較")
 
     # ------------------ 儲存匹配結果 ------------------
     # 合併配準後的 source 與 target 點雲

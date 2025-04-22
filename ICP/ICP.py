@@ -104,8 +104,8 @@ if __name__ == "__main__":
     # 指定 source 與 target 點雲檔案路徑
     # source_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5_cut/processed/normals_point_cloud_00000.ply"
     # target_file = "C:/Users/ASUS/Desktop/POINT/red/ICP_5_cut/processed/normals_point_cloud_00002.ply"
-    source_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00000.ply"
-    target_file = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/normals_point_cloud_00002.ply"
+    source_file = r"C:\Users\ASUS\Desktop\POINT\red\furiren\processed\0~77\00000_00037.ply"
+    target_file = r"C:\Users\ASUS\Desktop\POINT\red\furiren\processed\0~77\00000_00013.ply"
     # 讀取點雲
     source = load_point_cloud(source_file)
     target = load_point_cloud(target_file)
@@ -149,21 +149,16 @@ if __name__ == "__main__":
     source_down.paint_uniform_color([0, 0, 1])
     display_point_clouds(source_down, target_down, title="ICP 配準結果")
 
-    # 新增：比較 source 配準前後的差異
-    # 配準前的 source_down_before 保持紅色，配準後的 source_down 為藍色
-    source_down_before.paint_uniform_color([1, 0, 0])
-    source_down.paint_uniform_color([0, 0, 1])
-    display_point_clouds(source_down_before, source_down, title="Source 前後比較")
 
-    # ------------------ 儲存匹配結果 ------------------
-    # 合併配準後的 source 與 target 點雲
-    merged_pcd = source_down + target_down
+    # # ------------------ 儲存匹配結果 ------------------
+    # # 合併配準後的 source 與 target 點雲
+    # merged_pcd = source_down + target_down
 
-    # 從原始檔案名稱中提取數字編號
-    source_num = extract_number(source_file)
-    target_num = extract_number(target_file)
-    output_filename = f"{source_num}_{target_num}.ply"
-    print(f"儲存檔名: {output_filename}")
+    # # 從原始檔案名稱中提取數字編號
+    # source_num = extract_number(source_file)
+    # target_num = extract_number(target_file)
+    # output_filename = f"{source_num}_{target_num}.ply"
+    # print(f"儲存檔名: {output_filename}")
 
-    # 儲存合併後的點雲
-    o3d.io.write_point_cloud(output_filename, merged_pcd)
+    # # 儲存合併後的點雲
+    # o3d.io.write_point_cloud(output_filename, merged_pcd)

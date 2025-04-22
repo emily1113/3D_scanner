@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 讀取 PLY 檔案（plyfile 會自動判斷格式）
-plydata = PlyData.read("C:/Users/ASUS/Desktop/POINT/red/ICP_5/point_cloud_00000.ply")
+plydata = PlyData.read(r"C:\Users\ASUS\Desktop\POINT\red\furiren\processed\12\00013_00024.ply")
 vertex_data = plydata['vertex'].data
 
 # 將 x, y, z 座標堆疊成 NumPy 陣列

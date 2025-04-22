@@ -2,7 +2,7 @@ import open3d as o3d
 import numpy as np
 
 # 指定點雲檔案的路徑
-file_path = "C:/Users/ASUS/Desktop/POINT/red/furiren/processed/20/00000_00019.ply"
+file_path = r"C:\Users\ASUS\Desktop\POINT\red\furiren\processed\0~77\00000_00037"
 
 # 讀取點雲資料
 pcd = o3d.io.read_point_cloud(file_path)

@@ -231,7 +231,6 @@ if __name__ == "__main__":
         stage = next_stage
 
     # ------------------ 顯示最終成果 ------------------
-    print("配準結束時間：", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     final_folder = os.path.join(base_folder, str(stage))
     final_files = [f for f in os.listdir(final_folder) if f.endswith(".ply")]
     if final_files:
@@ -244,7 +243,7 @@ if __name__ == "__main__":
 
     print("所有階段合併完成！")
     # 🔹 顯示匹配結束系統時間
-
+    print("配準結束時間：", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     # ------------------ 輸出 Excel 記錄 ------------------
     df = pd.DataFrame(records, columns=["Stage", "Filename", "PointCount", "MergeTime(s)"])

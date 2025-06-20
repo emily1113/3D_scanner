@@ -1,71 +1,66 @@
-import open3d as o3d
+import open3d as o3d      # 只用於讀取與可視化
 import numpy as np
-import copy
+from sklearn.neighbors import NearestNeighbors
 
-def draw_registration_result(source, target, transformation, zoom=0.7):
-    source_temp = copy.deepcopy(source)
-    target_temp = copy.deepcopy(target)
-    source_temp.transform(transformation)
-    o3d.visualization.draw_geometries([source_temp, target_temp],
-                                      zoom=zoom,
-                                      front=[0.0, -0.0, -1.0],
-                                      lookat=[41.587005615234375, -45.81600570678711, 743.3211212473857],
-                                      up=[0.0, -1.0, -0.0])
+# ————————————
+# 參數設定
+# ————————————
+file_path = r"C:\Users\ASUS\Desktop\ICP_TIME\00000_00076 (1).ply"
+k = 30                # 鄰域大小，可調整以改變邊緣偵測的敏感度
+std_multiplier = 1.5  # 閾值以「平均 + std_multiplier × 標準差」計算
 
-def icp_registration(source_path, target_path):
-    # 讀取點雲
-    source = o3d.io.read_point_cloud(source_path)
-    target = o3d.io.read_point_cloud(target_path)
+# ————————————
+# 1. 讀取點雲（含法線）
+# ————————————
+pcd = o3d.io.read_point_cloud(file_path)
+points = np.asarray(pcd.points)   # (N, 3)
+normals = np.asarray(pcd.normals) # (N, 3)
 
-    # 下採樣點雲以提高ICP效率
-    voxel_size = 0.02  # 設置下採樣的體素大小
-    source_down = source.voxel_down_sample(voxel_size)
-    target_down = target.voxel_down_sample(voxel_size)
+# ————————————
+# 2. 建立 KD-Tree 找最近鄰
+# ————————————
+nn = NearestNeighbors(n_neighbors=k+1, algorithm="auto").fit(points)
+_, indices = nn.kneighbors(points)  # indices.shape = (N, k+1)
 
-    # 計算法線
-    source_down.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
-    target_down.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+# ————————————
+# 3. 計算法向量變化率（平均夾角）
+# ————————————
+normal_variation = np.zeros(points.shape[0])
+for i in range(points.shape[0]):
+    neigh_idx = indices[i, 1:]          # 排除自己
+    neigh_normals = normals[neigh_idx]  # (k, 3)
+    cosines = neigh_normals.dot(normals[i])
+    cosines = np.clip(cosines, -1.0, 1.0)
+    angles = np.arccos(cosines)         # 單位：rad
+    normal_variation[i] = angles.mean() # 或改為 angles.max()、angles.std()
 
-    # 檢查法線是否已計算成功
-    if not source_down.has_normals() or not target_down.has_normals():
-        raise RuntimeError("法線計算失敗，請檢查參數設定")
+# ————————————
+# 4. 列印統計資訊，並計算閾值
+# ————————————
+print("normal_variation  min:", normal_variation.min())
+print("normal_variation  max:", normal_variation.max())
+print("normal_variation  mean:", normal_variation.mean())
+print("normal_variation  std:",  normal_variation.std())
 
-    # 初始配準 (粗配準)
-    threshold = 0.05
-    trans_init = np.identity(4)
-    print("粗配準開始...")
-    result_icp = o3d.pipelines.registration.registration_icp(
-        source_down, target_down, threshold, trans_init,
-        o3d.pipelines.registration.TransformationEstimationPointToPoint())
+thresh = normal_variation.mean() + std_multiplier * normal_variation.std()
+print("使用閾值 (mean + {:.1f}×std) =".format(std_multiplier), thresh)
 
-    print("粗配準結果:")
-    print(result_icp)
-    draw_registration_result(source, target, result_icp.transformation, zoom=0.7)
+# ————————————
+# 5. 分割邊緣點並輸出數量
+# ————————————
+edge_indices = np.where(normal_variation > thresh)[0]
+edge_count = len(edge_indices)
+print("偵測到邊緣點數量：", edge_count)
 
-    # 精細配準之前，為完整的來源和目標點雲計算法線
-    source.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
-    target.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+# ————————————
+# 6. 可視化（Open3D）：灰色原點雲 + 紅色邊緣點
+#    並在視窗標題顯示偵測到的邊緣點數量
+# ————————————
+edge_pcd = pcd.select_by_index(edge_indices)
+# pcd.paint_uniform_color([0.7, 0.7, 0.7])
+edge_pcd.paint_uniform_color([1.0, 0.0, 0.0])
 
-    # 設定法線的方向一致
-    source.orient_normals_consistent_tangent_plane(k=10)
-    target.orient_normals_consistent_tangent_plane(k=10)
-
-    # 再次檢查法線是否已計算成功
-    if not source.has_normals() or not target.has_normals():
-        raise RuntimeError("法線計算失敗，請檢查參數設定")
-
-    # 精細配準
-    print("ICP精細配準開始...")
-    threshold = 0.02  # ICP配準容差
-    result_icp = o3d.pipelines.registration.registration_icp(
-        source, target, threshold, result_icp.transformation,
-        o3d.pipelines.registration.TransformationEstimationPointToPlane())
-
-    print("精細配準結果:")
-    print(result_icp)
-    draw_registration_result(source, target, result_icp.transformation, zoom=0.7)
-
-if __name__ == "__main__":
-    source_path = "C:/Users/ASUS/Desktop/POINT/red/ICP_1/point_cloud_00000.ply"  # 替換為來源點雲檔案的路徑
-    target_path = "C:/Users/ASUS/Desktop/POINT/red/ICP_1/point_cloud_00001.ply"  # 替換為目標點雲檔案的路徑
-    icp_registration(source_path, target_path)
+o3d.visualization.draw_geometries(
+    [ edge_pcd],
+    window_name=f"Detected Edge Points: {edge_count}",
+)

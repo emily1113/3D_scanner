@@ -1,39 +1,33 @@
 import open3d as o3d
 import numpy as np
 
-# 指定檔案路徑
-source_file = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_0.ply"
-target_file = "C:/Users/ASUS/Desktop/POINT/red/FPFH/5/point_cloud_with_normals_cut_3.ply"
+def compute_point_cloud_size(points):
+    min_xyz = np.min(points, axis=0)
+    max_xyz = np.max(points, axis=0)
+    size = max_xyz - min_xyz
+    length, width, height = size
+    print(f"長: {length:.4f}")
+    print(f"寬: {width:.4f}")
+    print(f"高: {height:.4f}")
+    return min_xyz, max_xyz, length, width, height
 
-# 讀入點雲
-pcd_source = o3d.io.read_point_cloud(source_file)
-pcd_target = o3d.io.read_point_cloud(target_file)
+def visualize_point_cloud_with_bbox(points, min_xyz, max_xyz):
+    # 建立 Open3D 點雲物件
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    
+    # 建立包圍盒
+    aabb = o3d.geometry.AxisAlignedBoundingBox(min_xyz, max_xyz)
+    aabb.color = (1, 0, 0)  # 紅色
 
+    # 顯示點雲與包圍盒
+    o3d.visualization.draw_geometries([pcd, aabb], window_name="點雲與包絡盒")
 
-# 取得所有法向量並計算平均法向量
-normals_source = np.asarray(pcd_source.normals)
-normals_target = np.asarray(pcd_target.normals)
-mean_normal_source = normals_source.mean(axis=0)
-mean_normal_target = normals_target.mean(axis=0)
-mean_normal_source /= np.linalg.norm(mean_normal_source)
-mean_normal_target /= np.linalg.norm(mean_normal_target)
+if __name__ == "__main__":
+    # 讀取點雲 (請改成你的檔案路徑)
+    FILE_PATH = r"C:\Users\ASUS\Desktop\POINT\red\furiren\result\FRIEREN_stl.ply"
+    pcd = o3d.io.read_point_cloud(FILE_PATH)
+    points = np.asarray(pcd.points)
 
-# 計算來源法向量到目標法向量所需的旋轉
-v = np.cross(mean_normal_source, mean_normal_target)
-s = np.linalg.norm(v)
-c = np.dot(mean_normal_source, mean_normal_target)
-
-# 當兩向量接近平行時，直接使用單位矩陣
-if s < 1e-8:
-    R = np.eye(3)
-else:
-    vx = np.array([[0, -v[2], v[1]],
-                   [v[2], 0, -v[0]],
-                   [-v[1], v[0], 0]])
-    R = np.eye(3) + vx + vx.dot(vx) * ((1 - c) / (s**2))
-
-# 將來源點雲依據旋轉矩陣進行旋轉對齊
-pcd_source.rotate(R, center=(0, 0, 0))
-
-# 顯示對齊後的結果
-o3d.visualization.draw_geometries([pcd_source, pcd_target])
+    min_xyz, max_xyz, length, width, height = compute_point_cloud_size(points)
+    visualize_point_cloud_with_bbox(points, min_xyz, max_xyz)

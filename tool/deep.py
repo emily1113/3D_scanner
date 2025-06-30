@@ -13,7 +13,7 @@ depth = imread(r"C:\Users\ASUS\Desktop\POINT\red\furiren\depth_image_00000.tiff"
 H, W = depth.shape
 
 # 若單位是mm要換算成公尺，直接除以1000（根據你需求調整）
-depth_m = depth / 1000.0
+depth_m = depth
 
 # 產生座標網格
 u, v = np.meshgrid(np.arange(W), np.arange(H))

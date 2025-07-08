@@ -91,7 +91,7 @@ def process_pair(source_file, target_file, voxel_size, refined_distance_threshol
         target_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30))
 
     if not downsample:
-        if len(source_pcd.points) > 600000 or len(target_pcd.points) > 600000:
+        if len(source_pcd.points) > 500000 or len(target_pcd.points) > 500000:
             print("發現點雲點數超過 500,000，強制下採樣！")
             downsample = True
 
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         os.makedirs(next_folder, exist_ok=True)
 
         # 判斷是否下採樣：當前階段是5的倍數
-        ds_flag = (stage % 15 == 0)
+        ds_flag = (stage % 5 == 0)
 
         for file1, file2 in zip(files[:-1], files[1:]):
             source_file = os.path.join(current_folder, file1)

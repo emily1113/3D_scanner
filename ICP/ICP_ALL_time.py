@@ -3,9 +3,10 @@ import re
 import time
 import numpy as np
 import open3d as o3d
-# import pandas as pd  # Excel 日誌功能已註解
+import pandas as pd
 from datetime import datetime
 from sklearn.neighbors import NearestNeighbors
+from openpyxl import Workbook, load_workbook  # ← 用於逐行寫入 Excel
 
 # ------------------ 自訂體素下採樣函式 ------------------
 
@@ -82,9 +83,30 @@ def refine_registration(source, target, initial_transformation, distance_thresho
 
 
 def process_pair(source_file, target_file, voxel_size, refined_distance_threshold, downsample=True):
+    """
+    處理單次配對，並回傳：
+    - merged_pcd: 合併後的 PointCloud 物件
+    - timing: 一個 dict，包含 IO、Preprocess、ICP、Write 各階段耗時
+    """
+    timing = {
+        "Stage": None,
+        "Source": os.path.basename(source_file),
+        "Target": os.path.basename(target_file),
+        "IO_time(s)": 0.0,
+        "Preprocess_time(s)": 0.0,
+        "ICP_time(s)": 0.0,
+        "Write_time(s)": 0.0,
+        "Total_time(s)": 0.0
+    }
+
+    # 1. IO 階段：讀取 Source 與 Target
+    t_io_start = time.time()
     source_pcd = o3d.io.read_point_cloud(source_file)
     target_pcd = o3d.io.read_point_cloud(target_file)
+    t_io_end = time.time()
+    timing["IO_time(s)"] = round(t_io_end - t_io_start, 4)
 
+    # 2. 若無法放下整雲則強制下採樣
     if not source_pcd.has_normals():
         source_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30))
     if not target_pcd.has_normals():
@@ -95,32 +117,46 @@ def process_pair(source_file, target_file, voxel_size, refined_distance_threshol
             print("發現點雲點數超過 500,000，強制下採樣！")
             downsample = True
 
+    # 3. Preprocess 階段：自訂下採樣與法向量
+    t_pre_start = time.time()
     if downsample:
-        src_before = len(source_pcd.points)
         source_proc = custom_preprocess_point_cloud(source_pcd, voxel_size)
-        src_after = len(source_proc.points)
-        print(f"[Custom Voxel Downsampling Source] {source_file}：{src_before} -> {src_after}")
-
-        tgt_before = len(target_pcd.points)
         target_proc = custom_preprocess_point_cloud(target_pcd, voxel_size)
-        tgt_after = len(target_proc.points)
-        print(f"[Custom Voxel Downsampling Target] {target_file}：{tgt_before} -> {tgt_after}")
     else:
         source_proc = source_pcd
         target_proc = target_pcd
 
     if not source_proc.has_normals():
-        source_proc.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size*2, max_nn=30))
+        source_proc.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30))
     if not target_proc.has_normals():
-        target_proc.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size*2, max_nn=30))
+        target_proc.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30))
+    t_pre_end = time.time()
+    timing["Preprocess_time(s)"] = round(t_pre_end - t_pre_start, 4)
 
+    # 4. ICP 階段
     initial_transformation = np.eye(4)
+    t_icp_start = time.time()
     result_icp = refine_registration(source_proc, target_proc, initial_transformation, refined_distance_threshold)
     source_proc.transform(result_icp.transformation)
+    t_icp_end = time.time()
+    timing["ICP_time(s)"] = round(t_icp_end - t_icp_start, 4)
 
+    # 5. Write 階段：將合併後的點雲作為 merged_pcd 返回（但實際寫入檔案的動作在主程式裡）
+    t_write_start = time.time()
     merged_pcd = source_proc + target_proc
     merged_pcd.paint_uniform_color([1, 0, 0])
-    return merged_pcd
+    t_write_end = time.time()
+    timing["Write_time(s)"] = round(t_write_end - t_write_start, 4)
+
+    # 計算 Total_time = 各階段之和
+    timing["Total_time(s)"] = round(
+        timing["IO_time(s)"] +
+        timing["Preprocess_time(s)"] +
+        timing["ICP_time(s)"] +
+        timing["Write_time(s)"], 4
+    )
+
+    return merged_pcd, timing
 
 
 def get_new_filename(file1, file2):
@@ -135,7 +171,32 @@ def get_new_filename(file1, file2):
         return f"merged_{file1}_{file2}.ply"
 
 
-# ------------------ 主程序 ------------------
+# ------------------ Excel 逐行寫入輔助函式 ------------------
+
+def append_to_excel(filepath, row_values, header=None):
+    """
+    如果檔案不存在，就建立新檔並寫入 header 和第一筆 row_values；
+    否則直接打開並 append 一列 row_values。
+    row_values: list，順序須對應 header。
+    header: list of str，僅用於建立新檔時寫第一列欄位名稱。
+    """
+    if not os.path.exists(filepath):
+        # 建立新 Workbook
+        wb = Workbook()
+        ws = wb.active
+        if header is not None:
+            ws.append(header)
+        ws.append(row_values)
+        wb.save(filepath)
+    else:
+        # 檔案已存在，直接讀取並 append
+        wb = load_workbook(filepath)
+        ws = wb.active
+        ws.append(row_values)
+        wb.save(filepath)
+
+
+# ------------------ 主程式 ------------------
 
 if __name__ == "__main__":
     print("配準開始時間：", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -146,8 +207,19 @@ if __name__ == "__main__":
     stage = 1
     current_folder = base_folder
 
+    # Excel 相關參數
+    excel_filename = "ICP_Timing_Log.xlsx"
+    excel_path = os.path.join(base_folder, excel_filename)
+    header = [
+        "Stage", "Source", "Target",
+        "IO_time(s)", "Preprocess_time(s)", "ICP_time(s)", "Write_time(s)", "Total_time(s)"
+    ]
+
+    # 刪除已存在的舊檔（如果想保留舊檔可註解此段）
+    if os.path.exists(excel_path):
+        os.remove(excel_path)
+
     while True:
-        # 讀取當前階段所有 ply 檔
         files = sorted([f for f in os.listdir(current_folder) if f.endswith(".ply")])
         num_files = len(files)
         print(f"\n=== Stage {stage}: {num_files} 檔案 ===")
@@ -155,37 +227,54 @@ if __name__ == "__main__":
             print("只剩下一個檔案，結束合併！")
             break
 
-        # 決定下採樣開關：stage=1 必下採樣，否則 5 的倍數下採樣
-        ds_flag = (stage == 1) or (stage % 5 == 0)
+        # 決定下採樣開關：stage=1 必下採樣，其餘每 5 階段下採樣
+        ds_flag = (stage == 1) or (stage % 10 == 0)
 
-        # 準備下一階段資料夾
+        # 建立下一階段資料夾
         next_stage = stage + 1
         next_folder = os.path.join(base_folder, str(next_stage))
         os.makedirs(next_folder, exist_ok=True)
 
-        # 兩兩配對處理
         for file1, file2 in zip(files[:-1], files[1:]):
             src_path = os.path.join(current_folder, file1)
             tgt_path = os.path.join(current_folder, file2)
             print(f"Stage {stage} 配準: {file1} + {file2} (downsample={ds_flag})")
 
-            t0 = time.time()
-            merged = process_pair(src_path, tgt_path, voxel_size, refined_distance_threshold, downsample=ds_flag)
-            t1 = time.time()
+            # 處理單次配對
+            merged_pcd, timing = process_pair(src_path, tgt_path, voxel_size, refined_distance_threshold, downsample=ds_flag)
 
-            # 依原檔名數字部分組新檔名
+            # 記錄 Stage 編號
+            timing["Stage"] = stage
+
+            # 寫入檔案
             out_name = get_new_filename(file1, file2)
             out_path = os.path.join(next_folder, out_name)
-            o3d.io.write_point_cloud(out_path, merged)
-            print(f"→ 輸出: {out_name}，耗時 {t1-t0:.2f} 秒")
+            o3d.io.write_point_cloud(out_path, merged_pcd)
+            print(f"→ 輸出: {out_name}，Total_time: {timing['Total_time(s)']} 秒")
+
+            # 準備要寫入 Excel 的 row
+            row = [
+                timing["Stage"],
+                timing["Source"],
+                timing["Target"],
+                timing["IO_time(s)"],
+                timing["Preprocess_time(s)"],
+                timing["ICP_time(s)"],
+                timing["Write_time(s)"],
+                timing["Total_time(s)"]
+            ]
+
+            # 每次配對完成就 append 到 Excel
+            append_to_excel(excel_path, row_values=row, header=header)
 
         # 進入下一階段
         stage = next_stage
         current_folder = next_folder
 
-    # 顯示最終結果
+    # 最後剩下一個檔案，印出提示
     final_files = [f for f in os.listdir(current_folder) if f.endswith(".ply")]
     if final_files:
         final_file = os.path.join(current_folder, final_files[0])
         print("最終成果檔案:", final_file)
     print("配準結束時間：", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    print(f"完整的耗時紀錄已逐次寫入：{excel_path}")

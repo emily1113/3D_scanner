@@ -123,94 +123,60 @@ def process_pair(source_file, target_file, voxel_size, refined_distance_threshol
     return merged_pcd
 
 
+
 def get_new_filename(file1, file2):
-    pattern = r"(\d{5})_(\d{5})\.ply"
-    m1 = re.match(pattern, file1)
-    m2 = re.match(pattern, file2)
-    if m1 and m2:
-        left = m1.group(1)
-        right = m2.group(2)
-        return f"{left}_{right}.ply"
-    else:
-        return f"merged_{file1}_{file2}.ply"
+    """
+    只取 file1 的第一組數字，與 file2 的最後一組數字，
+    合併成「00024_00027.ply」這種格式。
+    """
+    nums1 = re.findall(r'(\d+)', file1)
+    nums2 = re.findall(r'(\d+)', file2)
+    if nums1 and nums2:
+        first = nums1[0]
+        last = nums2[-1]
+        return f"{first}_{last}.ply"
+    # 若抓不到數字就退回合併名稱
+    return f"merged_{file1}_{file2}.ply"
+
 
 
 # ------------------ 主程序 ------------------
 
 if __name__ == "__main__":
-    print("配準開始時間：", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    print("One-pass merge start:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     voxel_size = 0.5
     refined_distance_threshold = voxel_size * 1.5
     base_folder = r"C:\Users\ASUS\Desktop\POINT\red\furiren\processed"
-
-    # 第一階段：對所有檔案進行下採樣與配準
-    output_folder = os.path.join(base_folder, "2")
+    output_folder = os.path.join(base_folder, "stage_1")
     os.makedirs(output_folder, exist_ok=True)
 
-    total_files = 77
-    for i in range(total_files - 1):
-        source_file = os.path.join(base_folder, f"normals_point_cloud_{i:05d}.ply")
-        target_file = os.path.join(base_folder, f"normals_point_cloud_{i+1:05d}.ply")
-        if not os.path.exists(source_file) or not os.path.exists(target_file):
-            print(f"檔案不存在，略過: {source_file} 或 {target_file}")
+    # 讀取所有檔案並排序
+    files = sorted([f for f in os.listdir(base_folder) if f.endswith(".ply")])
+    # 只做一次配對：0+1, 2+3, 4+5, …
+    for i in range(0, len(files), 2):
+        src_name = files[i]
+        tgt_index = i + 1
+        if tgt_index >= len(files):
+            print(f"No pair for {src_name}, skip.")
             continue
 
-        print(f"第一階段配準 (always downsample): {source_file} 與 {target_file}")
-        start_time = time.time()
-        merged_pcd = process_pair(source_file, target_file, voxel_size, refined_distance_threshold, downsample=True)
-        end_time = time.time()
-        merge_time = end_time - start_time
-        output_filename = f"{i:05d}_{i+1:05d}.ply"
-        output_path = os.path.join(output_folder, output_filename)
-        o3d.io.write_point_cloud(output_path, merged_pcd)
-        print(f"儲存至: {output_path}，耗時: {merge_time:.2f} 秒")
+        tgt_name = files[tgt_index]
+        src_path = os.path.join(base_folder, src_name)
+        tgt_path = os.path.join(base_folder, tgt_name)
 
-    stage = 2
+        print(f"Merging {src_name} + {tgt_name} (downsample=True)")
+        start = time.time()
+        merged_pcd = process_pair(src_path, tgt_path,
+                                  voxel_size, refined_distance_threshold,
+                                  downsample=True)
+        elapsed = time.time() - start
 
-    # 後續階段：僅在階段為5的倍數時下採樣
-    while True:
-        current_folder = os.path.join(base_folder, str(stage))
-        files = sorted([f for f in os.listdir(current_folder) if f.endswith(".ply")])
-        num_files = len(files)
-        print(f"階段 {stage} 檔案數： {num_files}")
-        if num_files <= 1:
-            print("只剩下一個檔案，結束合併！")
-            break
+        # 產生只含第一檔與第二檔最後編號的純數字檔名
+        out_name = get_new_filename(src_name, tgt_name)
+        out_path = os.path.join(output_folder, out_name)
+        o3d.io.write_point_cloud(out_path, merged_pcd)
+        print(f" → Saved {out_name}, time: {elapsed:.2f}s")
 
-        next_stage = stage + 1
-        next_folder = os.path.join(base_folder, str(next_stage))
-        os.makedirs(next_folder, exist_ok=True)
+    print("One-pass merge end:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-        # 判斷是否下採樣：當前階段是5的倍數
-        ds_flag = (stage % 5 == 0)
-
-        for file1, file2 in zip(files[:-1], files[1:]):
-            source_file = os.path.join(current_folder, file1)
-            target_file = os.path.join(current_folder, file2)
-
-            print(f"階段 {stage} 配準: {source_file} 與 {target_file} (downsample={ds_flag})")
-            start_time = time.time()
-            merged_pcd = process_pair(source_file, target_file, voxel_size, refined_distance_threshold, downsample=ds_flag)
-            end_time = time.time()
-            merge_time = end_time - start_time
-            new_filename = get_new_filename(file1, file2)
-            output_path = os.path.join(next_folder, new_filename)
-            o3d.io.write_point_cloud(output_path, merged_pcd)
-            print(f"→ 輸出: {output_path}，耗時: {merge_time:.2f} 秒")
-
-        stage = next_stage
-
-    # 顯示最終結果
-    final_folder = os.path.join(base_folder, str(stage))
-    final_files = [f for f in os.listdir(final_folder) if f.endswith(".ply")]
-    if final_files:
-        final_file = os.path.join(final_folder, final_files[0])
-        print("最終成果檔案:", final_file)
-        print("配準結束時間：", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        # final_pcd = o3d.io.read_point_cloud(final_file)
-        # o3d.visualization.draw_geometries([final_pcd], window_name="最終成果")
-    else:
-        print("無最終成果檔案可顯示。")
-
-    print("所有階段合併完成！")
